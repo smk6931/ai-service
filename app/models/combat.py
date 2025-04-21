@@ -1,9 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional, Tuple, Literal
 
-# 전투 시작 요청용
-class CharacterConfig(BaseModel):
+# 캐릭터 공통 필드
+class CharacterBase(BaseModel):
     id: str
+
+# 전투 시작 요청용
+class CharacterConfig(CharacterBase):
     name: str
     type: Literal["monster", "player"]
     personality: str
@@ -15,9 +18,8 @@ class BattleInitRequest(BaseModel):
     weather: str
 
 # 전투 판단 요청용
-class CharacterState(BaseModel):
-    id: str
-    position: Tuple[int, int]  # (x, y)
+class CharacterState(CharacterBase):
+    position: Tuple[int, int]
     hp: int
     ap: int
     status: List[str]
@@ -38,19 +40,12 @@ class BattleActionResponse(BaseModel):
     actions: List[MonsterAction]
 
 # AI 판단 용 모델
-class Character(BaseModel):
-    id: str
-    name: str
-    type: Literal["monster", "player"]
-    position: Tuple[int, int]  # 좌표
-    hp: int
-    ap: int
-    status: List[str]
-    personality: Optional[str] = None
-    skills: Optional[List[str]] = None
+class CharacterForAI(CharacterConfig, CharacterState):
+    pass
+
 
 class BattleStateForAI(BaseModel):
-    characters: List[Character]
+    characters: List[CharacterForAI]
     turn: int
     target_monster_id: str
     terrain: str

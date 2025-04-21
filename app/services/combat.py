@@ -6,7 +6,7 @@ from app.models.combat import (
     BattleActionResponse,
     MonsterAction,
     BattleStateForAI,
-    Character
+    CharacterForAI
 )
 from app.ai.combat import CombatAI
 
@@ -54,7 +54,7 @@ class CombatService:
             # 캐릭터 ID가 battle_config_map에 있는지 확인
             char_config = self.battle_config_map.get("characters", {}).get(char_state.id)
             
-            character = Character(
+            character = CharacterForAI(
                 id=char_state.id,
                 name=char_config.name if char_config else f"Unknown-{char_state.id}",
                 type=char_config.type if char_config else "monster",
