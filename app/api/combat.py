@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.models.combat import BattleInitRequest, BattleState, BattleActionResponse
-from app.services.combat_service import CombatService
+from app.services.combat import CombatService
 
 router = APIRouter(prefix="/battle", tags=["battle"])
 

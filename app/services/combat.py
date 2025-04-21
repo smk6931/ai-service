@@ -8,7 +8,7 @@ from app.models.combat import (
     BattleStateForAI,
     Character
 )
-from app.ai.combat_ai import CombatAI
+from app.ai.combat import CombatAI
 
 class CombatService:
     def __init__(self):
