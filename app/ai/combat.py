@@ -65,6 +65,7 @@ class CombatAI:
 
 행동 대상 몬스터: [{target.id}] {target.name}
 """
+        print(prompt)
         return prompt
 
     async def get_monster_action(self, battle_state: BattleStateForAI) -> BattleActionResponse:
