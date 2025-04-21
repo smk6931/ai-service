@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 
 # API 라우터 임포트
 from app.api.combat import router as combat_router
+from app.api.combat import router as test_router
 from app.api.users import router as users_router
 
 # 환경 변수 로드
