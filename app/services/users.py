@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session
-from db.users import Users, LoginLog
-from core.security import get_password_hash, verify_password
 from uuid import UUID
 from datetime import datetime
+
+from app.db.users import Users, LoginLog
+from app.core.security import get_password_hash, verify_password
 
 def get_active_user_by_email(email: str, db: Session) -> Users | None:
     return db.query(Users).filter(Users.email == email, Users.is_active == True).first()

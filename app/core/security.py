@@ -2,7 +2,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import jwt
 from jwt import ExpiredSignatureError, InvalidTokenError
-from config import settings
+from app.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

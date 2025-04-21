@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from db.users import RefreshTokens
 from datetime import datetime
 from uuid import UUID
+from app.db.users import RefreshTokens
 
 def store_refresh_token(db: Session, user_id: UUID, token: str, expire_time: datetime):
     db_token = RefreshTokens(
