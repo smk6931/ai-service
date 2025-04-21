@@ -52,8 +52,7 @@ class CombatAI:
         target = next((m for m in monsters if m.id == state.target_monster_id), None)
         if not target:
             raise ValueError("해당 ID의 몬스터가 존재하지 않습니다")
-
-        return f"""
+        prompt = f"""
 턴: {state.turn}
 지형: {state.terrain}
 날씨: {state.weather}
@@ -66,6 +65,7 @@ class CombatAI:
 
 행동 대상 몬스터: [{target.id}] {target.name}
 """
+        return prompt
 
     async def get_monster_action(self, battle_state: BattleStateForAI) -> BattleActionResponse:
         """몬스터의 다음 행동을 AI로 결정합니다"""
