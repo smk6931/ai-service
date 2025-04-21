@@ -15,7 +15,7 @@ from app.db.database import SessionLocal
 
 from app.config import settings
 
-router = APIRouter()
+router = APIRouter(prefix="/users", tags=["users"])
 
 # DB 세션 의존성
 def get_db():
