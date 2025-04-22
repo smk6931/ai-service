@@ -37,8 +37,8 @@ class MonsterAction(BaseModel):
     reason: Optional[str] = Field(default=None, description="행동 선택 이유")
 
 class BattleActionResponse(BaseModel):
-    monster_id: str
-    actions: List[MonsterAction]
+    monster_id: str = Field(description="행동하는 몬스터의 ID")
+    actions: List[MonsterAction] = Field(description="해당 턴에 사용하는 몬스터의 행동 목록 (최대한 많은 행동을 수행하는 것이 중요)")
 
 # AI 판단 용 모델
 class CharacterForAI(CharacterConfig, CharacterState):
