@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
 from app.models.combat import BattleActionResponse, BattleStateForAI
-from app.utils.loader import skills
+from app.utils.loader import skills, prompt_combat_rules, prompt_combat_state_template
 
 from dotenv import load_dotenv
 # 환경 변수 로드
@@ -15,27 +15,7 @@ class CombatAI:
     def __init__(self, model_name="gpt-4.1-nano", temperature=0.5):
         self.parser = PydanticOutputParser(pydantic_object=BattleActionResponse)
         self.llm = ChatOpenAI(model=model_name, temperature=temperature)
-        self.prompt = PromptTemplate.from_template(
-        """
-        당신은 턴제 RPG 게임의 몬스터 AI입니다.
-        아래의 전투 상황을 바탕으로, 몬스터가 이번 턴에 수행할 가장 적절한 행동들을 판단하고,
-        JSON 형식으로 출력하세요.
-        
-        전투 규칙:
-        1. 한 턴에 스킬을 여러 번 사용할 수 있습니다.
-        2. 하나의 스킬은 한 턴에 여러 번 사용할 수 없습니다.
-        3. 스킬은 AP를 소모하며, 스킬 사용에 필요한 AP가 부족하면 스킬을 사용할 수 없습니다.
-        4. AP는 턴이 시작할 때 1씩 회복되며, 남은 AP는 다음 턴에 사용할 수 있습니다.
-        5. 몬스터는 플레이어를 쓰러뜨리는 것을 목표로 행동합니다.
-
-        전투 상황:
-        {battle_state}
-
-        출력 시 반드시 대상 캐릭터는 이름이 아닌 ID를 사용하세요.
-        출력 형식:
-        {format}
-        """
-        ).partial(format=self.parser.get_format_instructions())
+        self.prompt = PromptTemplate.from_template(prompt_combat_rules).partial(format=self.parser.get_format_instructions())
         
         self.chain = self.prompt | self.llm | self.parser
 
@@ -94,24 +74,21 @@ class CombatAI:
         # 타겟 몬스터의 스킬 정보 가져오기
         target_skills_info = self.get_target_monster_skills_info(state)
         
-        state_text = f"""
-주기: {state.cycle}
-턴: {state.turn}
-지형: {state.terrain}
-날씨: {state.weather}
-
-몬스터 목록:
-{monster_text}
-
-플레이어 목록:
-{player_text}
-
-행동 대상 몬스터: [{target.id}] {target.name}
-
-{target_skills_info}
-"""
-        print(state_text)
-        return state_text
+        # 템플릿 사용하여 전투 상태 생성
+        prompt_combat_state = prompt_combat_state_template.format(
+            cycle=state.cycle,
+            turn=state.turn,
+            terrain=state.terrain,
+            weather=state.weather,
+            monster_text=monster_text,
+            player_text=player_text,
+            target_id=target.id,
+            target_name=target.name,
+            target_skills_info=target_skills_info
+        )
+        
+        print(prompt_combat_state)
+        return prompt_combat_state
 
     async def get_monster_action(self, battle_state: BattleStateForAI) -> BattleActionResponse:
         """몬스터의 다음 행동을 AI로 결정합니다"""
