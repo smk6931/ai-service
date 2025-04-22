@@ -18,7 +18,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/create", response_model=CharacterCreateResponse)
+@router.post("/create", response_model=CharacterCreateResponse, status_code=200)
 def create_character(data: CharacterCreateRequest, db: Session = Depends(get_db)):
     try:
         characters.create_character(data, db)
