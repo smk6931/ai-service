@@ -53,6 +53,7 @@ class CombatAI:
         if not target:
             raise ValueError("해당 ID의 몬스터가 존재하지 않습니다")
         prompt = f"""
+주기: {state.cycle}
 턴: {state.turn}
 지형: {state.terrain}
 날씨: {state.weather}

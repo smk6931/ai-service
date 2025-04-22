@@ -26,6 +26,7 @@ class CharacterState(CharacterBase):
 
 class BattleState(BaseModel):
     characters: List[CharacterState]
+    cycle: int
     turn: int
     target_monster_id: str
 
@@ -46,7 +47,9 @@ class CharacterForAI(CharacterConfig, CharacterState):
 
 class BattleStateForAI(BaseModel):
     characters: List[CharacterForAI]
+    cycle: int
     turn: int
     target_monster_id: str
     terrain: str
-    weather: str 
+    weather: str
+    
