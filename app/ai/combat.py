@@ -12,7 +12,12 @@ load_dotenv()
 
 # LangChain 구성
 class CombatAI:
-    def __init__(self, model_name="gpt-4.1-nano", temperature=0.5):
+    def __init__(
+        self, 
+        # model_name="gpt-4.1-nano", 
+        model_name="gpt-4o-mini", 
+        temperature=0.5
+    ):
         self.parser = PydanticOutputParser(pydantic_object=BattleActionResponse)
         self.llm = ChatOpenAI(model=model_name, temperature=temperature)
         self.prompt = PromptTemplate.from_template(prompt_combat_rules).partial(format=self.parser.get_format_instructions())
