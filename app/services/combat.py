@@ -62,7 +62,7 @@ class CombatService:
                 position=char_state.position,
                 hp=char_state.hp,
                 ap=char_state.ap,
-                status=char_state.status,
+                status_effects=char_state.status_effects,
                 personality=char_config.personality if char_config else None,
                 skills=char_config.skills if char_config else []
             )

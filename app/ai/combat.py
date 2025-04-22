@@ -38,8 +38,8 @@ class CombatAI:
 
         def char_desc(c):
             base = f"- [{c.id}] {c.name} (HP: {c.hp}, AP: {c.ap}, 위치: {c.position})"
-            if c.status:
-                base += f", 상태이상: {', '.join(c.status)}"
+            if c.status_effects:
+                base += f", 상태이상: {', '.join(c.status_effects)}"
             if c.skills:
                 base += f", 스킬: {', '.join(c.skills)}"
             if c.personality:
