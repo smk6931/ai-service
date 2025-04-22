@@ -22,7 +22,7 @@ class CharacterState(CharacterBase):
     position: Tuple[int, int]
     hp: int
     ap: int
-    status: List[str]
+    status_effects: List[str]
 
 class BattleState(BaseModel):
     characters: List[CharacterState]
