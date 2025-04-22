@@ -18,10 +18,10 @@ def register_user(email: str, password: str, db: Session) -> Users:
         email=email,
         password_hash=get_password_hash(password)
     )
+    
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
 
 
 def create_login_log(user_id: UUID, ip: str, user_agent: str, db: Session):
@@ -31,5 +31,6 @@ def create_login_log(user_id: UUID, ip: str, user_agent: str, db: Session):
         user_agent=user_agent,
         login_time=datetime.now()
     )
+    
     db.add(log)
     db.commit()
