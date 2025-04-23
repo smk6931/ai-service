@@ -1,0 +1,191 @@
+{
+    "타격": {
+        "description": "일반 공격",
+        "ap": 0,
+        "range": 1,
+        "damage": "1.0 ATK",
+        "effects": []
+    },
+    "마비의 일격": {
+        "description": "근접한 적에게 무기를 휘둘러 약화시킵니다.",
+        "ap": 1,
+        "range": 1,
+        "damage": "0.8 ATK",
+        "effects": ["약화"]
+    },
+    "몸통 박치기": {
+        "description": "몸으로 적을 밀쳐 피해를 입히고 속도를 감소시킵니다.",
+        "ap": 1,
+        "range": 1,
+        "damage": "0.8 ATK",
+        "effects": ["속도 감소"]
+    },
+    "맹독 공격": {
+        "description": "적에게 독 피해를 입힙니다.",
+        "ap": 1,
+        "range": 1,
+        "damage": "1.0 ATK",
+        "effects": ["중독"]
+    },
+    "취약 타격": {
+        "description": "적의 약점을 꿰뚫는 공격으로 취약 상태로 만듭니다.",
+        "ap": 1,
+        "range": 1,
+        "damage": "1.0 ATK",
+        "effects": ["취약"]
+    },
+    "약화의 일격": {
+        "description": "적의 힘과 속도를 약화시켜 전투력을 감소시킵니다.",
+        "ap": 1,
+        "range": 1,
+        "damage": "1.0 ATK",
+        "effects": ["약화"]
+    },
+    "치명 일격": {
+        "description": "큰 힘을 실어 강타하며 출혈 상태를 유발합니다.",
+        "ap": 2,
+        "range": 1,
+        "damage": "1.5 ATK",
+        "effects": ["출혈"]
+    },
+    "파열 참격": {
+        "description": "적의 방어를 무시하고 강한 일격을 날립니다.",
+        "ap": 2,
+        "range": 1,
+        "damage": "1.5 ATK",
+        "effects": ["취약"]
+    },
+    "대지 가르기": {
+        "description": "땅을 가르며 적을 넘어뜨리고 이동을 감소시킵니다.",
+        "ap": 2,
+        "range": 2,
+        "damage": "1.0 ATK",
+        "effects": ["이동 감소"]
+    },
+    "독침 찌르기": {
+        "description": "맹독이 묻은 침으로 찔러 중독을 유도하고 저항력을 낮춥니다.",
+        "ap": 1,
+        "range": 2,
+        "damage": "0.5 ATK",
+        "effects": ["중독", "약화"]
+    },
+    "이빨 물기": {
+        "description": "날카로운 이빨로 물어 출혈을 유도하고 저항력을 낮춥니다.",
+        "ap": 1,
+        "range": 1,
+        "damage": "0.5 ATK",
+        "effects": ["출혈", "약화"]
+    },
+    "날카로운 발톱": {
+        "description": "발톱으로 타격하여 갑옷을 찢습니다.",
+        "ap": 2,
+        "range": 1,
+        "damage": "1.5 ATK",
+        "effects": ["방어 감소"]
+    },
+    "사격": {
+        "description": "원거리 적을 타격합니다.",
+        "ap": 0,
+        "range": 6,
+        "damage": "1.0 ATK",
+        "effects": []
+    },
+    "원거리 사격": {
+        "description": "먼 거리의 적을 타격합니다.",
+        "ap": 1,
+        "range": 9,
+        "damage": "1.0 ATK",
+        "effects": []
+    },
+    "반동 사격": {
+        "description": "약한 화살 공격을 하고, 이동속도를 감소시킵니다.",
+        "ap": 1,
+        "range": 6,
+        "damage": "0.7 ATK",
+        "effects": ["이동 감소"]
+    },
+    "맹독 화살": {
+        "description": "적에게 독화살을 쏘아 적에게 피해를 주고 중독을 입힙니다.",
+        "ap": 1,
+        "range": 6,
+        "damage": "0.5 ATK",
+        "effects": ["중독"]
+    },
+    "불화살": {
+        "description": "적에게 불화살을 쏘아 적에게 피해를 주고 화상을 입힙니다.",
+        "ap": 1,
+        "range": 6,
+        "damage": "0.5 ATK",
+        "effects": ["화상"]
+    },
+    "강화 사격": {
+        "description": "하나의 적에게 강력한 화살을 발사하여 출혈을 입힙니다.",
+        "ap": 2,
+        "range": 6,
+        "damage": "2.0 ATK",
+        "effects": ["출혈"]
+    },
+    "석화의 시선": {
+        "description": "강렬한 시선으로 적을 위협해 일시적으로 움직이지 못하게 만듭니다.",
+        "ap": 1,
+        "range": 3,
+        "damage": "없음",
+        "effects": ["이동 불가"]
+    },
+    "단단한 갑각": {
+        "description": "자신의 몸을 단단히 굳혀 일시적으로 방어를 크게 상승시킵니다.",
+        "ap": 1,
+        "range": 0,
+        "damage": "없음",
+        "effects": ["방어 자세"]
+    },
+    "생존 본능": {
+        "description": "자신의 이동과 속도를 일시적으로 상승시킵니다.",
+        "ap": 1,
+        "range": 0,
+        "damage": "없음",
+        "effects": ["이동 증가", "속도 증가"]
+    },
+    "유연한 자세": {
+        "description": "자신의 방어와 속도를 일시적으로 상승시킵니다.",
+        "ap": 1,
+        "range": 0,
+        "damage": "없음",
+        "effects": ["방어 증가", "속도 증가"]
+    },
+    "전투 준비": {
+        "description": "적을 조준하여 강력한 공격을 준비합니다.",
+        "ap": 1,
+        "range": 0,
+        "damage": "없음",
+        "effects": ["조준"]
+    },
+    "방어 지휘": {
+        "description": "아군 한 명의 방어를 일시적으로 상승시킵니다.",
+        "ap": 1,
+        "range": 3,
+        "damage": "없음",
+        "effects": ["방어 증가"]
+    },
+    "포효": {
+        "description": "적을 위협하는 포효로 전투 의지를 약화시킵니다.",
+        "ap": 1,
+        "range": 3,
+        "damage": "없음",
+        "effects": ["약화"]
+    },
+    "광란 유도": {
+        "description": "전투의 본능을 자극하여 아군이 광란 상태에 빠지게 만듭니다.",
+        "ap": 1,
+        "range": 3,
+        "damage": "없음",
+        "effects": ["광란"]
+    },
+    "전투의 외침": {
+        "description": "아군의 사기를 높여 공격력을 일시적으로 증가시킵니다.",
+        "ap": 1,
+        "range": 6,
+        "damage": "없음",
+        "effects": ["분노"]
+    }
+}
