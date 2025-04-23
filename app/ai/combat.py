@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
 from app.models.combat import BattleActionResponse, BattleStateForAI
-from app.utils.loader import skills, prompt_combat_rules, prompt_combat_state_template
+from app.utils.loader import skills, personalities, prompt_combat_rules, prompt_combat_state_template
 
 from dotenv import load_dotenv
 # 환경 변수 로드
@@ -34,7 +34,7 @@ class CombatAI:
         
         # 타겟 몬스터의 스킬 정보 생성
         skill_info = []
-        skill_info.append(f"## ({target.name})의 스킬 정보:")
+        # skill_info.append(f"## ({target.name})의 스킬 정보:")
         
         for skill_name in target.skills:
             if skill_name in skills:
@@ -47,7 +47,7 @@ class CombatAI:
                 
                 # dmg_mult 필드로 변경
                 dmg_mult = skill_data.get('dmg_mult', 0)
-                damage_text = f"{dmg_mult}x ATK" if dmg_mult > 0 else "없음"
+                damage_text = f"{dmg_mult} x ATK" if dmg_mult > 0 else "없음"
                 info += f"  피해량: {damage_text}\n"
                 
                 if skill_data.get('effects'):
@@ -56,6 +56,41 @@ class CombatAI:
                 skill_info.append(info)
         
         return "\n".join(skill_info)
+
+    # 타겟 몬스터의 성격 정보 추출
+    def get_target_monster_personality_info(self, state: BattleStateForAI) -> str:
+        """타겟 몬스터의 성격 정보를 추출하여 반환합니다"""
+        # 타겟 몬스터 찾기
+        target = next((m for m in state.characters if m.id == state.target_monster_id), None)
+        print("TARGET: ", target)
+        print("TARGET PERSONALITIES: ", target.personalities)
+        if not target or not target.personalities:
+            return "타겟 몬스터의 성격 정보가 없습니다."
+        
+        personality_info = []
+        # personality_info.append("## 성격 정보:")
+        
+        for personality_name in target.personalities:
+            # print("PERSONALITY NAME: ", personality_name)
+            if personality_name in personalities:
+                personality_data = personalities[personality_name]
+                
+                info = f"- {personality_name}: {personality_data.get('description', '정보 없음')}\n"
+                
+                # # 스탯 변경 정보가 있으면 추가
+                # stat_changes = personality_data.get('stat_cng', {})
+                # if stat_changes:
+                #     stat_info = []
+                #     for stat, value in stat_changes.items():
+                #         # 양수는 +, 음수는 - 기호 붙여서 표시
+                #         prefix = '+' if value > 0 else ''
+                #         stat_info.append(f"{stat}: {prefix}{value}")
+                    
+                #     info += f"  스탯 영향: {', '.join(stat_info)}\n"
+                
+                personality_info.append(info)
+        
+        return "\n".join(personality_info)
 
     # 프롬프트 텍스트 생성 함수
     def convert_state_to_prompt_text(self, state: BattleStateForAI) -> str:
@@ -69,8 +104,8 @@ class CombatAI:
                 base += f", 상태이상: {', '.join(c.status_effects)}"
             if c.skills:
                 base += f", 스킬: {', '.join(c.skills)}"
-            if c.personality:
-                base += f", 성격: {c.personality}"
+            if c.personalities:
+                base += f", 성격: {c.personalities}"
             return base
 
         monster_text = "\n".join([char_desc(m) for m in monsters])
@@ -83,6 +118,9 @@ class CombatAI:
         # 타겟 몬스터의 스킬 정보 가져오기
         target_skills_info = self.get_target_monster_skills_info(state)
         
+        # 타겟 몬스터의 성격 정보 가져오기
+        target_personality_info = self.get_target_monster_personality_info(state)
+        
         # 템플릿 사용하여 전투 상태 생성
         prompt_combat_state = prompt_combat_state_template.format(
             cycle=state.cycle,
@@ -93,7 +131,8 @@ class CombatAI:
             player_text=player_text,
             target_id=target.id,
             target_name=target.name,
-            target_skills_info=target_skills_info
+            target_skills_info=target_skills_info,
+            target_personality_info=target_personality_info
         )
         
         print(prompt_combat_state)
