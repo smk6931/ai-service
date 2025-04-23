@@ -1,0 +1,83 @@
+{
+    "화상": {
+      "description": "대상이 화상 피해를 입고 공격력이 감소합니다.",
+      "stat_cng": { "hp_per_turn": -0.1, "atk": -0.2 },
+      "duration": 3
+    },
+    "출혈": {
+      "description": "대상이 출혈 피해를 입고 방어력이 감소합니다.",
+      "stat_cng": { "hp_per_turn": -0.1, "def": -0.2 },
+      "duration": 3
+    },
+    "중독": {
+      "description": "대상이 독 피해를 받고 속도가 감소합니다.",
+      "stat_cng": { "hp_per_turn": -0.1, "spd": -0.1 },
+      "duration": 3
+    },
+    "약화": {
+      "description": "공격력, 방어력이 감소합니다.",
+      "stat_cng": { "atk": -0.2, "def": -0.2 },
+      "duration": 2
+    },
+    "방어 감소": {
+      "description": "방어력이 감소합니다.",
+      "stat_cng": { "def": -0.3 },
+      "duration": 2
+    },
+    "속도 감소": {
+      "description": "턴 순서가 느려집니다.",
+      "stat_cng": { "spd": -0.3 },
+      "duration": 2
+    },
+    "이동 감소": {
+      "description": "이동 범위가 감소합니다.",
+      "stat_cng": { "mov": -2 },
+      "duration": 2
+    },
+    "이동 불가": {
+      "description": "이동할 수 없습니다.",
+      "stat_cng": { "mov": 0 },
+      "duration": 1
+    },
+    "취약": {
+      "description": "방어력이 크게 감소합니다.",
+      "stat_cng": { "def": -0.5 },
+      "duration": 1
+    },
+    "분노": {
+      "description": "공격의 피해가 증가합니다.",
+      "stat_cng": { "atk": 0.5 },
+      "duration": 1
+    },
+    "광란": {
+      "description": "공격력과 치명타 확률이 상승합니다.",
+      "stat_cng": { "atk": 0.2, "crit": 0.2 },
+      "duration": 2
+    },
+    "조준": {
+      "description": "공격의 치명타 확률이 증가합니다.",
+      "stat_cng": { "crit": 0.5 },
+      "duration": 1
+    },
+    "방어 자세": {
+      "description": "방어력이 크게 증가합니다.",
+      "stat_cng": { "def": 0.7 },
+      "duration": 1
+    },
+    "방어 증가": {
+      "description": "방어력이 증가합니다.",
+      "stat_cng": { "def": 0.3 },
+      "duration": 2
+    },
+    "속도 증가": {
+      "description": "턴 순서가 빨라집니다.",
+      "stat_cng": { "spd": 0.3 },
+      "duration": 2
+    },
+    "이동 증가": {
+      "description": "이동 범위가 증가합니다.",
+      "stat_cng": { "mov": 2 },
+      "duration": 2
+    }
+  }
+  
