@@ -44,7 +44,11 @@ class CombatAI:
                 info += f"  설명: {skill_data.get('description', '정보 없음')}\n"
                 info += f"  AP 소모: {skill_data.get('ap', '정보 없음')}\n"
                 info += f"  사거리: {skill_data.get('range', '정보 없음')}\n"
-                info += f"  피해량: {skill_data.get('damage', '정보 없음')}\n"
+                
+                # dmg_mult 필드로 변경
+                dmg_mult = skill_data.get('dmg_mult', 0)
+                damage_text = f"{dmg_mult}x ATK" if dmg_mult > 0 else "없음"
+                info += f"  피해량: {damage_text}\n"
                 
                 if skill_data.get('effects'):
                     info += f"  효과: {', '.join(skill_data.get('effects'))}\n"
@@ -100,4 +104,3 @@ class CombatAI:
         prompt_text = self.convert_state_to_prompt_text(battle_state)
         result = await self.chain.ainvoke({"battle_state": prompt_text})
         return result
-    
