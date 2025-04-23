@@ -9,8 +9,13 @@ def load_personality(path='app/data/personality.json'):
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
     
+def load_status_effects(path='app/data/status_effect.json'):
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+    
 skills = load_skills()
 personalities = load_personality()
+status_effects = load_status_effects()
 
 prompt_combat_rules = """
 당신은 턴제 RPG 게임의 몬스터 AI입니다.
@@ -26,6 +31,7 @@ JSON 형식으로 출력하세요.
 6. AP는 턴이 시작할 때 1씩 회복되며, 남은 AP는 다음 턴에 사용할 수 있습니다.
 7. 몬스터는 플레이어와의 전투에서 승리하는 것을 목표로 행동합니다.
 8. 몬스터의 스킬 정보와 성격 정보를 반영하여 행동하세요.
+9. 상태 효과 정보를 활용하여 전략적으로 행동하세요.
 
 전투 상황:
 {battle_state}
@@ -51,6 +57,10 @@ prompt_combat_state_template = """
 
 몬스터의 스킬 정보:
 {target_skills_info}
+
+상태 효과 정보:
+{status_effects_info}
+
 몬스터의 성격 정보:
 {target_personality_info}
 """

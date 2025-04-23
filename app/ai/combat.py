@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
 from app.models.combat import BattleActionResponse, BattleStateForAI
-from app.utils.loader import skills, personalities, prompt_combat_rules, prompt_combat_state_template
+from app.utils.loader import skills, personalities, status_effects, prompt_combat_rules, prompt_combat_state_template
 
 from dotenv import load_dotenv
 # 환경 변수 로드
@@ -51,13 +51,60 @@ class CombatAI:
                 info += f"  피해량: {damage_text}\n"
                 
                 if skill_data.get('effects'):
-                    info += f"  효과: {', '.join(skill_data.get('effects'))}\n"
+                    info += f"  상태 효과: {', '.join(skill_data.get('effects'))}\n"
                 
                 skill_info.append(info)
         
         return "\n".join(skill_info)
 
-    # 타겟 몬스터의 성격 정보 추출
+    
+    # 타겟 몬스터의 스킬 효과 정보 추출
+    def get_status_effects_info(self, state: BattleStateForAI) -> str:
+        """타겟 몬스터의 스킬이 가진 효과들의 상세 정보를 추출하여 반환합니다"""
+        # 타겟 몬스터 찾기
+        target = next((m for m in state.characters if m.id == state.target_monster_id), None)
+        if not target or not target.skills:
+            return "스킬 효과 정보가 없습니다."
+        
+        # 모든 스킬의 효과들을 수집
+        all_effects = set()
+        for skill_name in target.skills:
+            if skill_name in skills:
+                skill_data = skills[skill_name]
+                if 'effects' in skill_data and skill_data['effects']:
+                    for effect in skill_data['effects']:
+                        all_effects.add(effect)
+        
+        if not all_effects:
+            return "스킬 효과 정보가 없습니다."
+        
+        # 효과들의 상세 정보 생성
+        effect_info = []
+        for effect_name in sorted(all_effects):
+            if effect_name in status_effects:
+                effect_data = status_effects[effect_name]
+                
+                info = f"- {effect_name}: {effect_data.get('description', '정보 없음')}"
+                
+                # # 스탯 변경 정보 추가
+                # stat_changes = effect_data.get('stat_cng', {})
+                # if stat_changes:
+                #     stat_info = []
+                #     for stat, value in stat_changes.items():
+                #         # 양수는 +, 음수는 - 기호 붙여서 표시
+                #         prefix = '+' if value > 0 else ''
+                #         if stat == 'hp_per_turn':
+                #             stat_info.append(f"턴당 HP: {prefix}{value}")
+                #         else:
+                #             stat_info.append(f"{stat}: {prefix}{value}")
+                    
+                #     info += f"  스탯 영향: {', '.join(stat_info)}\n"
+                
+                effect_info.append(info)
+        
+        return "\n".join(effect_info)
+    
+# 타겟 몬스터의 성격 정보 추출
     def get_target_monster_personality_info(self, state: BattleStateForAI) -> str:
         """타겟 몬스터의 성격 정보를 추출하여 반환합니다"""
         # 타겟 몬스터 찾기
@@ -75,7 +122,7 @@ class CombatAI:
             if personality_name in personalities:
                 personality_data = personalities[personality_name]
                 
-                info = f"- {personality_name}: {personality_data.get('description', '정보 없음')}\n"
+                info = f"- {personality_name}: {personality_data.get('description', '정보 없음')}"
                 
                 # # 스탯 변경 정보가 있으면 추가
                 # stat_changes = personality_data.get('stat_cng', {})
@@ -121,6 +168,9 @@ class CombatAI:
         # 타겟 몬스터의 성격 정보 가져오기
         target_personality_info = self.get_target_monster_personality_info(state)
         
+        # 타겟 몬스터의 스킬 효과 정보 가져오기
+        status_effects_info = self.get_status_effects_info(state)
+        
         # 템플릿 사용하여 전투 상태 생성
         prompt_combat_state = prompt_combat_state_template.format(
             cycle=state.cycle,
@@ -132,7 +182,8 @@ class CombatAI:
             target_id=target.id,
             target_name=target.name,
             target_skills_info=target_skills_info,
-            target_personality_info=target_personality_info
+            target_personality_info=target_personality_info,
+            status_effects_info=status_effects_info
         )
         
         print(prompt_combat_state)
