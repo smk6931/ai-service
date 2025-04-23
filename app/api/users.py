@@ -84,9 +84,9 @@ def refresh_access_token(request: RefreshRequest, db: Session = Depends(get_db))
         , "access_token": new_access_token
     }
 
-@router.get("/me")
-def get_me(current_user: Users = Depends(get_current_user)):
-    return {
-        "message": "정보 조회 완료"
-        , "user_id": str(current_user.user_id)
-    }
+# @router.get("/me")
+# def get_me(current_user: Users = Depends(get_current_user)):
+#     return {
+#         "message": "정보 조회 완료"
+#         , "user_id": str(current_user.user_id)
+#     }
