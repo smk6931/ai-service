@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
 from app.models.combat import BattleActionResponse, BattleStateForAI
-from app.utils.loader import skills, personalities, status_effects, prompt_combat_rules, prompt_combat_state_template
+from app.utils.loader import skills, personalities, status_effects, prompt_combat_rules, prompt_battle_state_template
 
 from dotenv import load_dotenv
 # 환경 변수 로드
@@ -172,7 +172,7 @@ class CombatAI:
         status_effects_info = self.get_status_effects_info(state)
         
         # 템플릿 사용하여 전투 상태 생성
-        prompt_combat_state = prompt_combat_state_template.format(
+        prompt_battle_state = prompt_battle_state_template.format(
             cycle=state.cycle,
             turn=state.turn,
             terrain=state.terrain,
@@ -186,8 +186,8 @@ class CombatAI:
             status_effects_info=status_effects_info
         )
         
-        print(prompt_combat_state)
-        return prompt_combat_state
+        print(prompt_battle_state)
+        return prompt_battle_state
 
     async def get_monster_action(self, battle_state: BattleStateForAI) -> BattleActionResponse:
         """몬스터의 다음 행동을 AI로 결정합니다"""

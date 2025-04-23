@@ -41,7 +41,7 @@ JSON 형식으로 출력하세요.
 {format}
 """
 
-prompt_combat_state_template = """
+prompt_battle_state_template = """
 주기: {cycle}
 턴: {turn}
 지형: {terrain}
