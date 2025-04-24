@@ -9,7 +9,7 @@ class CharacterBase(BaseModel):
 class CharacterConfig(CharacterBase):
     name: str
     type: Literal["monster", "player"]
-    personality: str
+    personalities: List[str]
     skills: List[str]
 
 class BattleInitRequest(BaseModel):
