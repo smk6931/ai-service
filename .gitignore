@@ -1,4 +1,4 @@
 *.env
 app/test
 **__pycache__
-app/vector_db/**/length.bin
+app/vector_db/
