@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from uuid import UUID
 from enum import Enum
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 class JobType(str, Enum):
     warrior = "warrior"
@@ -30,13 +30,15 @@ class CharacterCreateRequest(BaseModel):
     character_name: str = Field(..., max_length=10)
     job: JobType
     gender: GenderType
+    traits: List[str]
 
 class CharacterUpdateRequest(BaseModel):
     character_id: UUID
-    level: int
-    current_exp: int
-    max_exp: int
-    position: Position
+    level: Optional[int] = None
+    current_exp: Optional[int] = None
+    max_exp: Optional[int] = None
+    traits: Optional[List[str]] = None
+    position: Optional[Position] = None
 
 class CharacterStatsUpdateRequest(BaseModel):
     character_id: UUID

@@ -13,15 +13,16 @@ def create_character(data:CharacterCreateRequest, db: Session) -> Character:
         raise ValueError("등록되지 않은 사용자입니다.")
     
     # 캐릭터 이름 중복 체크
-    existed_character_name = db.query(Character).filter_by(character_name=data.character_name).first()
-    if existed_character_name:
+    character_name = db.query(Character).filter_by(character_name=data.character_name).first()
+    if character_name:
         raise ValueError("이미 존재하는 캐릭터 이름입니다.")
 
     character = Character(
         user_id=data.user_id,
         character_name=data.character_name,
         job=data.job,
-        gender=data.gender
+        gender=data.gender,
+        traits=data.traits
     )
     
     db.add(character)
@@ -48,12 +49,12 @@ def create_character(data:CharacterCreateRequest, db: Session) -> Character:
 def update_character(data: CharacterUpdateRequest, db: Session) -> Character:
     character = db.query(Character).filter(Character.character_id == data.character_id).first()
     if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
+        raise ValueError("캐릭터가 존재하지 않습니다.")
+    
+    update_fields = data.dict(exclude_unset=True, exclude={"character_id"})
 
-    character.level = data.level
-    character.current_exp = data.current_exp
-    character.max_exp = data.max_exp
-    character.position = data.position.dict() if hasattr(data.position, 'dict') else data.position
+    for field, value in update_fields.items():
+        setattr(character, field, value)
 
     db.commit()
     db.refresh(character)
@@ -62,7 +63,7 @@ def update_character_stats(data: CharacterStatsUpdateRequest, db: Session):
     stats = db.query(CharacterStats).filter_by(character_id=data.character_id).first()
 
     if not stats:
-        raise HTTPException(status_code=404, detail="해당 캐릭터의 스탯 정보가 없습니다.")
+        raise ValueError("해당 캐릭터의 스탯 정보가 없습니다.")
 
     update_fields = data.dict(exclude_unset=True, exclude={"character_id"})
 

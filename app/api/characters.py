@@ -38,6 +38,8 @@ def update_character(data: CharacterUpdateRequest, db: Session = Depends(get_db)
         return {
             "message": "캐릭터 업데이트 완료"
         }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -49,6 +51,8 @@ def update_character_stats(data: CharacterStatsUpdateRequest, db: Session = Depe
         return {
             "message": "캐릭터 스탯 업데이트 완료"
         }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
