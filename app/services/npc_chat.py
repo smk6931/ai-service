@@ -22,7 +22,7 @@ class NPCChatService:
     @lru_cache(maxsize=1)
     def get_vectorstore(self):
         return Chroma(
-            persist_directory="C:/LORELESS/ai-service/test/ChromaDB/Loreless_act_1",
+            persist_directory="./app/vector_db/loreless_act1",
             embedding_function=self.get_embedding_model(),
             collection_name="loreless_act_1"
         )
