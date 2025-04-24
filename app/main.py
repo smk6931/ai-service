@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 # API 라우터 임포트
 from app.api.combat import router as combat_router
 from app.api.users import router as users_router
+from app.api.npc_chat import router as npc_chat_router
 
 # 환경 변수 로드
 load_dotenv()
@@ -24,6 +25,7 @@ app.add_middleware(
 # 라우터 등록
 app.include_router(combat_router)
 app.include_router(users_router)
+app.include_router(npc_chat_router)
 
 @app.get("/")
 async def root():
