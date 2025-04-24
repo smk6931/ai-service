@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Enum, DateTime, ForeignKey, func, Integer, Float, JSON
+from sqlalchemy import Column, String, Enum, DateTime, ForeignKey, func, Integer, Float, JSON, ARRAY
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
@@ -15,12 +15,13 @@ class Character(Base):
     character_name = Column(String(10), nullable=False)
     job = Column(Enum(JobType, name="job_enum"), nullable=False)
     gender = Column(Enum(GenderType, name="gender_enum"), nullable=False)
+    traits = Column(ARRAY(String), nullable=False)
     
     level = Column(Integer, nullable=False, default=1)
     current_exp = Column(Integer, nullable=False, default=0)
     max_exp = Column(Integer, nullable=False, default=100)
     
-    position = position = Column(JSON, nullable=False)
+    position = Column(JSON, nullable=False)
     
     created_time = Column(DateTime(timezone=True), server_default=func.now())
 

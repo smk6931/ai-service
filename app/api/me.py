@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -30,6 +30,9 @@ def get_me(
         .first()
     )
     
+    if not character:
+        raise HTTPException(status_code=404, detail="캐릭터가 존재하지 않습니다.")
+    
     if character:
         stats = character.stats
         
@@ -38,6 +41,7 @@ def get_me(
             "character_name": character.character_name,
             "job": character.job,
             "gender": character.gender,
+            "traits": character.traits,
             "level": character.level,
             "current_exp": character.current_exp,
             "max_exp": character.max_exp,
