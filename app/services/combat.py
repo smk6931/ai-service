@@ -6,7 +6,7 @@ from app.models.combat import (
     BattleActionResponse,
     MonsterAction,
     BattleStateForAI,
-    Character
+    CharacterForAI
 )
 from app.ai.combat import CombatAI
 
@@ -41,6 +41,7 @@ class CombatService:
                 return await self.combat_ai.get_monster_action(ai_state)
             except Exception as e:
                 # AI 판단 실패시 기본 로직으로 폴백
+                print(f"AI 판단 실패: {str(e)}")
                 return self._fallback_decision(state)
         
         except Exception as e:
@@ -54,14 +55,14 @@ class CombatService:
             # 캐릭터 ID가 battle_config_map에 있는지 확인
             char_config = self.battle_config_map.get("characters", {}).get(char_state.id)
             
-            character = Character(
+            character = CharacterForAI(
                 id=char_state.id,
                 name=char_config.name if char_config else f"Unknown-{char_state.id}",
                 type=char_config.type if char_config else "monster",
                 position=char_state.position,
                 hp=char_state.hp,
                 ap=char_state.ap,
-                status=char_state.status,
+                status_effects=char_state.status_effects,
                 personality=char_config.personality if char_config else None,
                 skills=char_config.skills if char_config else []
             )
@@ -69,6 +70,7 @@ class CombatService:
         
         return BattleStateForAI(
             characters=characters,
+            cycle=state.cycle,
             turn=state.turn,
             target_monster_id=state.target_monster_id,
             terrain=self.battle_config_map.get("terrain", "일반"),
