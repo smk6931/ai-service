@@ -63,7 +63,7 @@ class CombatService:
                 hp=char_state.hp,
                 ap=char_state.ap,
                 status_effects=char_state.status_effects,
-                personalities=char_config.personalities if char_config else None,
+                traits=char_config.traits if char_config else [],
                 skills=char_config.skills if char_config else []
             )
             characters.append(character)

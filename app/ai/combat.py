@@ -3,7 +3,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
 from app.models.combat import BattleActionResponse, BattleStateForAI
-from app.utils.loader import skills, personalities, status_effects, prompt_combat_rules, prompt_battle_state_template
+from app.utils.loader import skills, traits, status_effects, prompt_combat_rules, prompt_battle_state_template
 
 from dotenv import load_dotenv
 # 환경 변수 로드
@@ -104,28 +104,28 @@ class CombatAI:
         
         return "\n".join(effect_info)
     
-# 타겟 몬스터의 성격 정보 추출
-    def get_target_monster_personality_info(self, state: BattleStateForAI) -> str:
-        """타겟 몬스터의 성격 정보를 추출하여 반환합니다"""
+# 타겟 몬스터의 특성 정보 추출
+    def get_target_monster_traits_info(self, state: BattleStateForAI) -> str:
+        """타겟 몬스터의 특성 정보를 추출하여 반환합니다"""
         # 타겟 몬스터 찾기
         target = next((m for m in state.characters if m.id == state.target_monster_id), None)
         print("TARGET: ", target)
-        print("TARGET PERSONALITIES: ", target.personalities)
-        if not target or not target.personalities:
-            return "타겟 몬스터의 성격 정보가 없습니다."
+        print("TARGET TRAITS: ", target.traits)
+        if not target or not target.traits:
+            return "타겟 몬스터의 특성 정보가 없습니다."
         
-        personality_info = []
-        # personality_info.append("## 성격 정보:")
+        trait_info = []
+        # trait_info.append("## 특성 정보:")
         
-        for personality_name in target.personalities:
-            # print("PERSONALITY NAME: ", personality_name)
-            if personality_name in personalities:
-                personality_data = personalities[personality_name]
+        for trait_name in target.traits:
+            # print("TRAIT NAME: ", trait_name)
+            if trait_name in traits:
+                trait_data = traits[trait_name]
                 
-                info = f"- {personality_name}: {personality_data.get('description', '정보 없음')}"
+                info = f"- {trait_name}: {trait_data.get('description', '정보 없음')}"
                 
                 # # 스탯 변경 정보가 있으면 추가
-                # stat_changes = personality_data.get('stat_cng', {})
+                # stat_changes = trait_data.get('stat_cng', {})
                 # if stat_changes:
                 #     stat_info = []
                 #     for stat, value in stat_changes.items():
@@ -135,9 +135,9 @@ class CombatAI:
                     
                 #     info += f"  스탯 영향: {', '.join(stat_info)}\n"
                 
-                personality_info.append(info)
+                trait_info.append(info)
         
-        return "\n".join(personality_info)
+        return "\n".join(trait_info)
 
     # 프롬프트 텍스트 생성 함수
     def convert_state_to_prompt_text(self, state: BattleStateForAI) -> str:
@@ -151,8 +151,8 @@ class CombatAI:
                 base += f", 상태이상: {', '.join(c.status_effects)}"
             if c.skills:
                 base += f", 스킬: {', '.join(c.skills)}"
-            if c.personalities:
-                base += f", 성격: {c.personalities}"
+            if c.traits:
+                base += f", 특성: {c.traits}"
             return base
 
         monster_text = "\n".join([char_desc(m) for m in monsters])
@@ -165,8 +165,8 @@ class CombatAI:
         # 타겟 몬스터의 스킬 정보 가져오기
         target_skills_info = self.get_target_monster_skills_info(state)
         
-        # 타겟 몬스터의 성격 정보 가져오기
-        target_personality_info = self.get_target_monster_personality_info(state)
+        # 타겟 몬스터의 특성 정보 가져오기
+        target_traits_info = self.get_target_monster_traits_info(state)
         
         # 타겟 몬스터의 스킬 효과 정보 가져오기
         status_effects_info = self.get_status_effects_info(state)
@@ -182,7 +182,7 @@ class CombatAI:
             target_id=target.id,
             target_name=target.name,
             target_skills_info=target_skills_info,
-            target_personality_info=target_personality_info,
+            target_traits_info=target_traits_info,
             status_effects_info=status_effects_info
         )
         
