@@ -28,10 +28,10 @@ class CombatService:
         """AI를 통해 몬스터의 행동을 결정합니다"""
         try:
             # 기본 판단 로직 (AI가 실패할 경우 백업)
-            target_id = state.target_monster_id
-            monster_state = next((c for c in state.characters if c.id == target_id), None)
+            current_character_id = state.current_character_id
+            monster_state = next((c for c in state.characters if c.id == current_character_id), None)
             if not monster_state:
-                raise ValueError(f"몬스터 ID '{target_id}'를 찾을 수 없습니다.")
+                raise ValueError(f"캐릭터 ID '{current_character_id}'를 찾을 수 없습니다.")
 
             # AI 판단을 위해 BattleState를 BattleStateForAI로 변환
             ai_state = self._convert_to_ai_state(state)
@@ -51,9 +51,19 @@ class CombatService:
         """BattleState를 AI 판단용 BattleStateForAI로 변환합니다"""
         characters = []
         
+        # 타겟 몬스터의 위치 찾기
+        target_monster = next((c for c in state.characters if c.id == state.current_character_id), None)
+        if not target_monster:
+            raise ValueError(f"타겟 몬스터 ID '{state.current_character_id}'를 찾을 수 없습니다.")
+        
+        target_position = target_monster.position
+        
         for char_state in state.characters:
             # 캐릭터 ID가 battle_config_map에 있는지 확인
             char_config = self.battle_config_map.get("characters", {}).get(char_state.id)
+            
+            # 맨하탄 거리 계산 - 타겟 몬스터와의 거리
+            distance = abs(char_state.position[0] - target_position[0]) + abs(char_state.position[1] - target_position[1])
             
             character = CharacterForAI(
                 id=char_state.id,
@@ -64,7 +74,8 @@ class CombatService:
                 ap=char_state.ap,
                 status_effects=char_state.status_effects,
                 traits=char_config.traits if char_config else [],
-                skills=char_config.skills if char_config else []
+                skills=char_config.skills if char_config else [],
+                distance=distance
             )
             characters.append(character)
         
@@ -72,33 +83,33 @@ class CombatService:
             characters=characters,
             cycle=state.cycle,
             turn=state.turn,
-            target_monster_id=state.target_monster_id,
+            current_character_id=state.current_character_id,
             terrain=self.battle_config_map.get("terrain", "일반"),
             weather=self.battle_config_map.get("weather", "맑음")
         )
 
     def _fallback_decision(self, state: BattleState) -> BattleActionResponse:
         """AI 판단 실패시 사용할 기본 판단 로직"""
-        target_id = state.target_monster_id
+        current_character_id = state.current_character_id
         
-        # 적 1명 선택 (monster 제외)
-        enemies = [c for c in state.characters if c.id != target_id]
+        # 타겟 캐릭터 선택 (monster 제외)
+        target_characters = [c for c in state.characters if c.id != current_character_id]
         
         # 스킬은 전투 시작 시 저장된 config에서 가져옴
-        monster_config = self.battle_config_map.get("characters", {}).get(target_id)
+        monster_config = self.battle_config_map.get("characters", {}).get(current_character_id)
         skill_list = monster_config.skills if monster_config else ["찌르기"]
         
         actions = []
-        if enemies and skill_list:
+        if target_characters and skill_list:
             actions.append(
                 MonsterAction(
                     skill=skill_list[0],
-                    target_id=enemies[0].id,
+                    target_id=target_characters[0].id,
                     reason="기본 판단 로직 사용 (AI 판단 실패)"
                 )
             )
         
         return BattleActionResponse(
-            monster_id=target_id,
+            current_character_id=current_character_id,
             actions=actions
         ) 

@@ -24,19 +24,44 @@ class CombatAI:
         
         self.chain = self.prompt | self.llm | self.parser
 
+    # 두 캐릭터 간의 맨하탄 거리 계산
+    def calculate_manhattan_distance(self, pos1, pos2):
+        """두 위치 간의 맨하탄 거리(가로+세로 이동 거리)를 계산합니다"""
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
+
+    # 각 캐릭터와 타겟 몬스터 사이의 거리 계산
+    def calculate_distances_from_target(self, state: BattleStateForAI):
+        """각 캐릭터와 타겟 몬스터 사이의 거리를 계산하여 설정합니다"""
+        # 타겟 몬스터 찾기
+        current = next((c for c in state.characters if c.id == state.current_character_id), None)
+        if not current:
+            print("타겟 몬스터를 찾을 수 없습니다.")
+            return
+        
+        target_position = current.position
+        
+        # 각 캐릭터의 거리 계산
+        for character in state.characters:
+            character.distance = self.calculate_manhattan_distance(
+                target_position, character.position
+            )
+            
+        # 거리 정보를 포함하는 설명 추가
+        print(f"타겟 몬스터와의 거리 계산 완료: {[(c.id, c.distance) for c in state.characters]}")
+
     # 타겟 몬스터의 스킬 정보 추출
     def get_target_monster_skills_info(self, state: BattleStateForAI) -> str:
         """타겟 몬스터가 가진 스킬들의 정보를 추출하여 반환합니다"""
         # 타겟 몬스터 찾기
-        target = next((m for m in state.characters if m.id == state.target_monster_id), None)
-        if not target or not target.skills:
+        current = next((c for c in state.characters if c.id == state.current_character_id), None)
+        if not current or not current.skills:
             return "타겟 몬스터의 스킬 정보가 없습니다."
         
         # 타겟 몬스터의 스킬 정보 생성
         skill_info = []
         # skill_info.append(f"## ({target.name})의 스킬 정보:")
         
-        for skill_name in target.skills:
+        for skill_name in current.skills:
             if skill_name in skills:
                 skill_data = skills[skill_name]
                 
@@ -62,13 +87,13 @@ class CombatAI:
     def get_status_effects_info(self, state: BattleStateForAI) -> str:
         """타겟 몬스터의 스킬이 가진 효과들의 상세 정보를 추출하여 반환합니다"""
         # 타겟 몬스터 찾기
-        target = next((m for m in state.characters if m.id == state.target_monster_id), None)
-        if not target or not target.skills:
+        current = next((c for c in state.characters if c.id == state.current_character_id), None)
+        if not current or not current.skills:
             return "스킬 효과 정보가 없습니다."
         
         # 모든 스킬의 효과들을 수집
         all_effects = set()
-        for skill_name in target.skills:
+        for skill_name in current.skills:
             if skill_name in skills:
                 skill_data = skills[skill_name]
                 if 'effects' in skill_data and skill_data['effects']:
@@ -104,20 +129,20 @@ class CombatAI:
         
         return "\n".join(effect_info)
     
-# 타겟 몬스터의 특성 정보 추출
+    # 타겟 몬스터의 특성 정보 추출
     def get_target_monster_traits_info(self, state: BattleStateForAI) -> str:
         """타겟 몬스터의 특성 정보를 추출하여 반환합니다"""
         # 타겟 몬스터 찾기
-        target = next((m for m in state.characters if m.id == state.target_monster_id), None)
-        print("TARGET: ", target)
-        print("TARGET TRAITS: ", target.traits)
-        if not target or not target.traits:
+        current = next((c for c in state.characters if c.id == state.current_character_id), None)
+        # print("CURRENT: ", current)
+        # print("CURRENT TRAITS: ", current.traits)
+        if not current or not current.traits:
             return "타겟 몬스터의 특성 정보가 없습니다."
         
         trait_info = []
         # trait_info.append("## 특성 정보:")
         
-        for trait_name in target.traits:
+        for trait_name in current.traits:
             # print("TRAIT NAME: ", trait_name)
             if trait_name in traits:
                 trait_data = traits[trait_name]
@@ -139,14 +164,40 @@ class CombatAI:
         
         return "\n".join(trait_info)
 
+    # 거리 정보 추가 함수
+    def get_distance_info(self, state: BattleStateForAI) -> str:
+        """각 캐릭터와 타겟 몬스터 사이의 거리 정보를 문자열로 반환합니다"""
+        current = next((c for c in state.characters if c.id == state.current_character_id), None)
+        if not current:
+            return "거리 정보를 계산할 수 없습니다."
+        
+        distance_info = []
+        distance_info.append("## 거리 정보:")
+        
+        for character in state.characters:
+            if character.id != state.current_character_id:
+                distance_info.append(f"- [{character.id}] {character.name}: {character.distance} 칸")
+        
+        return "\n".join(distance_info)
+
     # 프롬프트 텍스트 생성 함수
     def convert_state_to_prompt_text(self, state: BattleStateForAI) -> str:
-        chars = state.characters
-        monsters = [c for c in chars if c.type == "monster"]
-        players = [c for c in chars if c.type == "player"]
+        # 먼저 각 캐릭터와 타겟 몬스터 사이의 거리 계산
+        self.calculate_distances_from_target(state)
+        
+        characters = state.characters
+        monsters = [c for c in characters if c.type == "monster"]
+        players = [c for c in characters if c.type == "player"]
 
         def char_desc(c):
-            base = f"- [{c.id}] {c.name} (HP: {c.hp}, AP: {c.ap}, 위치: {c.position})"
+            base = f"- [{c.id}] {c.name} (HP: {c.hp}, AP: {c.ap}, 위치: {c.position}"
+            
+            # 타겟 몬스터가 아닌 경우 거리 정보 추가
+            if c.id != state.current_character_id:
+                base += f", 거리: {c.distance}칸"
+                
+            base += ")"
+            
             if c.status_effects:
                 base += f", 상태이상: {', '.join(c.status_effects)}"
             if c.skills:
@@ -158,8 +209,8 @@ class CombatAI:
         monster_text = "\n".join([char_desc(m) for m in monsters])
         player_text = "\n".join([char_desc(p) for p in players])
 
-        target = next((m for m in monsters if m.id == state.target_monster_id), None)
-        if not target:
+        current = next((c for c in characters if c.id == state.current_character_id), None)
+        if not current:
             raise ValueError("해당 ID의 몬스터가 존재하지 않습니다")
         
         # 타겟 몬스터의 스킬 정보 가져오기
@@ -171,6 +222,9 @@ class CombatAI:
         # 타겟 몬스터의 스킬 효과 정보 가져오기
         status_effects_info = self.get_status_effects_info(state)
         
+        # 거리 정보 추가
+        distance_info = self.get_distance_info(state)
+        
         # 템플릿 사용하여 전투 상태 생성
         prompt_battle_state = prompt_battle_state_template.format(
             cycle=state.cycle,
@@ -179,12 +233,15 @@ class CombatAI:
             weather=state.weather,
             monster_text=monster_text,
             player_text=player_text,
-            target_id=target.id,
-            target_name=target.name,
+            current_id=current.id,
+            current_name=current.name,
             target_skills_info=target_skills_info,
             target_traits_info=target_traits_info,
             status_effects_info=status_effects_info
         )
+        
+        # 거리 정보를 프롬프트에 추가
+        prompt_battle_state += f"\n\n{distance_info}"
         
         print(prompt_battle_state)
         return prompt_battle_state
