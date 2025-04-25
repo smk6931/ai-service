@@ -25,7 +25,7 @@ class CombatService:
         return {"status": "success"}
 
     async def decide_actions(self, state: BattleState) -> BattleActionResponse:
-        """AI를 통해 몬스터의 행동을 결정합니다"""
+        """AI를 통해 캐릭터의 행동을 결정합니다"""
         try:
             # 기본 판단 로직 (AI가 실패할 경우 백업)
             current_character_id = state.current_character_id
@@ -72,6 +72,7 @@ class CombatService:
                 position=char_state.position,
                 hp=char_state.hp,
                 ap=char_state.ap,
+                mov=char_state.mov,
                 status_effects=char_state.status_effects,
                 traits=char_config.traits if char_config else [],
                 skills=char_config.skills if char_config else [],

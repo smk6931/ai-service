@@ -190,20 +190,14 @@ class CombatAI:
         players = [c for c in characters if c.type == "player"]
 
         def char_desc(c):
-            base = f"- [{c.id}] {c.name} (HP: {c.hp}, AP: {c.ap}, 위치: {c.position}"
-            
-            # 타겟 몬스터가 아닌 경우 거리 정보 추가
-            if c.id != state.current_character_id:
-                base += f", 거리: {c.distance}칸"
-                
-            base += ")"
+            base = f"- [{c.id}] {c.name} (HP: {c.hp}, AP: {c.ap}, 위치: {c.position}, range: {c.distance})"
             
             if c.status_effects:
                 base += f", 상태이상: {', '.join(c.status_effects)}"
             if c.skills:
                 base += f", 스킬: {', '.join(c.skills)}"
             if c.traits:
-                base += f", 특성: {c.traits}"
+                base += f", 특성: {', '.join(c.traits)}"
             return base
 
         monster_text = "\n".join([char_desc(m) for m in monsters])
@@ -222,8 +216,8 @@ class CombatAI:
         # 타겟 몬스터의 스킬 효과 정보 가져오기
         status_effects_info = self.get_status_effects_info(state)
         
-        # 거리 정보 추가
-        distance_info = self.get_distance_info(state)
+        # # 거리 정보 추가
+        # distance_info = self.get_distance_info(state)
         
         # 템플릿 사용하여 전투 상태 생성
         prompt_battle_state = prompt_battle_state_template.format(
@@ -239,9 +233,6 @@ class CombatAI:
             target_traits_info=target_traits_info,
             status_effects_info=status_effects_info
         )
-        
-        # 거리 정보를 프롬프트에 추가
-        prompt_battle_state += f"\n\n{distance_info}"
         
         print(prompt_battle_state)
         return prompt_battle_state
