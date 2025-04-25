@@ -18,12 +18,12 @@ traits = load_traits()
 status_effects = load_status_effects()
 
 prompt_combat_rules = """
-당신은 턴제 RPG 게임의 캐릭터 AI입니다.
-아래의 전투 상황을 바탕으로, 캐릭터가 이번 턴에 수행할 가장 적절한 행동들을 판단하고,
+당신은 턴제 RPG 게임의 AI 전투 시스템입니다.
+아래의 전투 상황을 바탕으로, 이번 턴 행동할 캐릭터가 이번 턴에 수행할 가장 적절한 행동들을 판단하고,
 JSON 형식으로 출력하세요.
 
 전투 규칙:
-1. 캐릭터는 각 턴마다 여러 개의 행동을 순차적으로 수행할 수 있습니다.
+1. 당신은 항상 이번 턴 행동할 캐릭터의 입장에서 스킬을 사용하고 행동해야 합니다. 캐릭터는 각 턴마다 여러 개의 행동을 순차적으로 수행할 수 있습니다.
 2. 각 행동에는 다음과 같은 제약 조건이 존재합니다:
     - AP(Action Point): 행동 시 소모되며, 스킬 사용 시 반드시 필요합니다.
     - MOV(Movement Point): 이동 시 1칸당 1MOV를 소모합니다. 대각선 이동은 불가능하며, 한 턴에 여러 번 이동할 수 있습니다.
@@ -65,7 +65,8 @@ prompt_battle_state_template = """
 플레이어 목록:
 {player_text}
 
-행동 대상 캐릭터: [{current_id}] {current_name}
+이번 턴 행동할 캐릭터: [{current_id}] {current_name}
+중요: 이 캐릭터가 행동을 수행하며, 자신 또는 다른 캐릭터들이 타겟이 됩니다.
 
 현재 캐릭터의 스킬 정보:
 {current_skills_info}
@@ -73,7 +74,7 @@ prompt_battle_state_template = """
 상태 효과 정보:
 {current_status_effects_info}
 
-몬스터의 특성 정보:
+현재 캐릭터의 특성 정보:
 {current_traits_info}
 """
 

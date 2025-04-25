@@ -107,19 +107,6 @@ class CombatAI:
                 
                 info = f"- {effect_name}: {effect_data.get('description', '정보 없음')}"
                 
-                # # 스탯 변경 정보 추가
-                # stat_changes = effect_data.get('stat_cng', {})
-                # if stat_changes:
-                #     stat_info = []
-                #     for stat, value in stat_changes.items():
-                #         # 양수는 +, 음수는 - 기호 붙여서 표시
-                #         prefix = '+' if value > 0 else ''
-                #         if stat == 'hp_per_turn':
-                #             stat_info.append(f"턴당 HP: {prefix}{value}")
-                #         else:
-                #             stat_info.append(f"{stat}: {prefix}{value}")
-                    
-                #     info += f"  스탯 영향: {', '.join(stat_info)}\n"
                 
                 effect_info.append(info)
         
@@ -145,16 +132,6 @@ class CombatAI:
                 
                 info = f"- {trait_name}: {trait_data.get('description', '정보 없음')}"
                 
-                # # 스탯 변경 정보가 있으면 추가
-                # stat_changes = trait_data.get('stat_cng', {})
-                # if stat_changes:
-                #     stat_info = []
-                #     for stat, value in stat_changes.items():
-                #         # 양수는 +, 음수는 - 기호 붙여서 표시
-                #         prefix = '+' if value > 0 else ''
-                #         stat_info.append(f"{stat}: {prefix}{value}")
-                    
-                #     info += f"  스탯 영향: {', '.join(stat_info)}\n"
                 
                 trait_info.append(info)
         
@@ -238,6 +215,9 @@ class CombatAI:
         prompt_text = self.convert_state_to_prompt_text(battle_state)
         result = await self.chain.ainvoke({"battle_state": prompt_text})
         
+        # 현재 캐릭터 ID를 항상 요청에서 받은 ID로 설정
+        result.current_character_id = battle_state.current_character_id
+        
         # 리소스 계산 로직 개선
         current_character = next((c for c in battle_state.characters if c.id == battle_state.current_character_id), None)
         if current_character and result.actions:
@@ -249,9 +229,9 @@ class CombatAI:
             # 각 행동마다 순차적으로 리소스 계산
             for i, action in enumerate(result.actions):
                 # 스킬 AP 소모량 가져오기
-                skill_ap_cost = 1  # 기본값
+                skill_ap_cost = 0  # 기본값
                 if action.skill in skills:
-                    skill_ap_cost = skills[action.skill].get('ap', 1)
+                    skill_ap_cost = skills[action.skill].get('ap', 0)
                 
                 # 이동 및 행동 비용 계산
                 costs = calculate_action_costs(
@@ -276,5 +256,10 @@ class CombatAI:
                 current_ap = action.remaining_ap
                 current_mov = action.remaining_mov
                 current_position = action.move_to
+        
+        # 디버깅 로그
+        print(f"결정된 행동: 캐릭터 ID={result.current_character_id}, 행동 수={len(result.actions)}")
+        for i, action in enumerate(result.actions):
+            print(f"  행동 {i+1}: 스킬={action.skill}, 대상={action.target_character_id}, 남은 AP={action.remaining_ap}, 남은 MOV={action.remaining_mov}")
         
         return result

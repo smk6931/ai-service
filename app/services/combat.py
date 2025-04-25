@@ -52,17 +52,17 @@ class CombatService:
         """BattleState를 AI 판단용 BattleStateForAI로 변환합니다"""
         characters = []
         
-        # 타겟 캐릭터의 위치 찾기
+        # 현재 캐릭터 찾기
         current_character = next((c for c in state.characters if c.id == state.current_character_id), None)
         if not current_character:
-            raise ValueError(f"타겟 몬스터 ID '{state.current_character_id}'를 찾을 수 없습니다.")
+            raise ValueError(f"현재 캐릭터 ID '{state.current_character_id}'를 찾을 수 없습니다.")
         
         
         for char_state in state.characters:
             # 캐릭터 ID가 battle_config_map에 있는지 확인
             char_config = self.battle_config_map.get("characters", {}).get(char_state.id)
             
-            # 맨하탄 거리 계산 - 타겟 몬스터와의 거리
+            # 맨하탄 거리 계산 - 현재 캐릭터와의 거리
             distance = calculate_manhattan_distance(current_character.position, char_state.position)
             
             character = CharacterForAI(
@@ -98,12 +98,27 @@ class CombatService:
         if not current_character:
             raise ValueError(f"캐릭터 ID '{current_character_id}'를 찾을 수 없습니다.")
         
-        # 타겟 캐릭터 선택
-        target_characters = [c for c in state.characters if c.id != current_character_id]
-        
-        # 스킬은 전투 시작 시 저장된 config에서 가져옴
+        # 현재 캐릭터의 타입 확인
         current_config = self.battle_config_map.get("characters", {}).get(current_character_id)
-        skill_list = current_config.skills if current_config and current_config.skills else ["찌르기"]
+        current_type = current_config.type if current_config else "monster"
+        
+        # 타겟 선택 - 몬스터는 플레이어 우선, 플레이어는 몬스터 우선
+        target_type = "player" if current_type == "monster" else "monster"
+        target_characters = []
+        
+        for char_id, char_config in self.battle_config_map.get("characters", {}).items():
+            if char_id != current_character_id and char_config.type == target_type:
+                # 해당 캐릭터가 현재 state에 있는지 확인
+                target_state = next((c for c in state.characters if c.id == char_id), None)
+                if target_state:
+                    target_characters.append(target_state)
+        
+        # 타겟을 찾지 못한 경우, 다른 모든 캐릭터를 타겟으로 고려
+        if not target_characters:
+            target_characters = [c for c in state.characters if c.id != current_character_id]
+            
+        # 스킬은 전투 시작 시 저장된 config에서 가져옴
+        skill_list = current_config.skills if current_config and current_config.skills else ["타격"]
         
         actions = []
         if target_characters and skill_list:
@@ -124,10 +139,10 @@ class CombatService:
                 skill_name = skill_list[i]
                 
                 # 스킬 AP 소모량 가져오기
-                skill_ap_cost = 1  # 기본값
+                skill_ap_cost = 0  # 기본값
                 from app.utils.loader import skills
                 if skill_name in skills:
-                    skill_ap_cost = skills[skill_name].get('ap', 1)
+                    skill_ap_cost = skills[skill_name].get('ap', 0)
                 
                 # 타겟과의 거리 계산
                 distance_to_target = calculate_manhattan_distance(current_position, target.position)
@@ -189,6 +204,9 @@ class CombatService:
                 current_ap = costs['remaining_ap']
                 current_mov = costs['remaining_mov']
                 current_position = move_to_position
+        
+        # 디버깅 로그
+        print(f"폴백 결정: 캐릭터 ID={current_character_id}, 행동 수={len(actions)}")
         
         return BattleActionResponse(
             current_character_id=current_character_id,
