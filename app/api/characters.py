@@ -5,7 +5,6 @@ from app.services import characters
 
 from app.models.characters import CharacterCreateRequest, CharacterCreateResponse, CharacterUpdateRequest, CharacterUpdateResponse, CharacterStatsUpdateRequest, CharacterStatsUpdateResponse
 
-from app.db.characters import Character
 from app.db.database import SessionLocal
 
 router = APIRouter(prefix="/characters", tags=["characters"])

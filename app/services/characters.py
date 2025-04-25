@@ -1,28 +1,31 @@
 from sqlalchemy.orm import Session
 from uuid import UUID
-from fastapi import HTTPException
 
 from app.db.characters import Character, CharacterStats
 from app.db.users import Users
-from app.models.characters import CharacterCreateRequest, CharacterUpdateRequest, CharacterStatsUpdateRequest
+from app.models.characters import CharacterCreateRequest, CharacterUpdateRequest, CharacterStatsUpdateRequest, CharacterInfoRequest
 
-def create_character(data:CharacterCreateRequest, db: Session) -> Character:
+def get_character(request: CharacterInfoRequest, db: Session) -> Character:
+    character = db.query(Character).filter_by(user_id=request.user_id).order_by(Character.created_time.desc()).first()
+    return character
+
+def create_character(request: CharacterCreateRequest, db: Session) -> Character:
     # 사용자 존재 여부 체크
-    user = db.query(Users).filter(Users.user_id == data.user_id).first()
+    user = db.query(Users).filter(Users.user_id == request.user_id).first()
     if not user:
         raise ValueError("등록되지 않은 사용자입니다.")
     
     # 캐릭터 이름 중복 체크
-    character_name = db.query(Character).filter_by(character_name=data.character_name).first()
+    character_name = db.query(Character).filter_by(character_name=request.character_name).first()
     if character_name:
         raise ValueError("이미 존재하는 캐릭터 이름입니다.")
 
     character = Character(
-        user_id=data.user_id,
-        character_name=data.character_name,
-        job=data.job,
-        gender=data.gender,
-        traits=data.traits
+        user_id=request.user_id,
+        character_name=request.character_name,
+        job=request.job,
+        gender=request.gender,
+        traits=request.traits
     )
     
     db.add(character)
@@ -37,7 +40,7 @@ def create_character(data:CharacterCreateRequest, db: Session) -> Character:
 
     stats = CharacterStats(
         character_id=character.character_id,
-        **base_stats[data.job.value]
+        **base_stats[request.job.value]
     )
     
     db.add(stats)
@@ -46,12 +49,12 @@ def create_character(data:CharacterCreateRequest, db: Session) -> Character:
     
     return character
 
-def update_character(data: CharacterUpdateRequest, db: Session) -> Character:
-    character = db.query(Character).filter(Character.character_id == data.character_id).first()
+def update_character(request: CharacterUpdateRequest, db: Session) -> Character:
+    character = db.query(Character).filter(Character.character_id == request.character_id).first()
     if not character:
         raise ValueError("캐릭터가 존재하지 않습니다.")
     
-    update_fields = data.dict(exclude_unset=True, exclude={"character_id"})
+    update_fields = request.dict(exclude_unset=True, exclude={"character_id"})
 
     for field, value in update_fields.items():
         setattr(character, field, value)
@@ -59,13 +62,13 @@ def update_character(data: CharacterUpdateRequest, db: Session) -> Character:
     db.commit()
     db.refresh(character)
 
-def update_character_stats(data: CharacterStatsUpdateRequest, db: Session):
-    stats = db.query(CharacterStats).filter_by(character_id=data.character_id).first()
+def update_character_stats(request: CharacterStatsUpdateRequest, db: Session):
+    stats = db.query(CharacterStats).filter_by(character_id=request.character_id).first()
 
     if not stats:
         raise ValueError("해당 캐릭터의 스탯 정보가 없습니다.")
 
-    update_fields = data.dict(exclude_unset=True, exclude={"character_id"})
+    update_fields = request.dict(exclude_unset=True, exclude={"character_id"})
 
     for field, value in update_fields.items():
         setattr(stats, field, value)
