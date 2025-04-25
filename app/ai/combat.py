@@ -2,8 +2,9 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
-from app.models.combat import BattleActionResponse, BattleStateForAI
+from app.models.combat import BattleActionResponse, BattleStateForAI, CharacterAction
 from app.utils.loader import skills, traits, status_effects, prompt_combat_rules, prompt_battle_state_template
+from app.utils.combat import calculate_manhattan_distance, calculate_action_costs
 
 from dotenv import load_dotenv
 # 환경 변수 로드
@@ -24,11 +25,6 @@ class CombatAI:
         
         self.chain = self.prompt | self.llm | self.parser
 
-    # 두 캐릭터 간의 맨하탄 거리 계산
-    def calculate_manhattan_distance(self, pos1, pos2):
-        """두 위치 간의 맨하탄 거리(가로+세로 이동 거리)를 계산합니다"""
-        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
-
     # 각 캐릭터와 타겟 몬스터 사이의 거리 계산
     def calculate_distances_from_target(self, state: BattleStateForAI):
         """각 캐릭터와 타겟 몬스터 사이의 거리를 계산하여 설정합니다"""
@@ -42,7 +38,7 @@ class CombatAI:
         
         # 각 캐릭터의 거리 계산
         for character in state.characters:
-            character.distance = self.calculate_manhattan_distance(
+            character.distance = calculate_manhattan_distance(
                 target_position, character.position
             )
             
@@ -237,8 +233,31 @@ class CombatAI:
         print(prompt_battle_state)
         return prompt_battle_state
 
-    async def get_monster_action(self, battle_state: BattleStateForAI) -> BattleActionResponse:
+    async def get_character_action(self, battle_state: BattleStateForAI) -> BattleActionResponse:
         """몬스터의 다음 행동을 AI로 결정합니다"""
         prompt_text = self.convert_state_to_prompt_text(battle_state)
         result = await self.chain.ainvoke({"battle_state": prompt_text})
+        
+        # 리소스 계산 로직 추가
+        current_character = next((c for c in battle_state.characters if c.id == battle_state.current_character_id), None)
+        if current_character and result.actions:
+            for action in result.actions:
+                # 스킬 AP 소모량 가져오기
+                skill_ap_cost = 1  # 기본값
+                if action.skill in skills:
+                    skill_ap_cost = skills[action.skill].get('ap', 1)
+                
+                # 이동 및 행동 비용 계산
+                costs = calculate_action_costs(
+                    current_position=current_character.position,
+                    target_position=action.move_to,
+                    current_ap=current_character.ap if not hasattr(action, 'remaining_ap') or action.remaining_ap is None else action.remaining_ap,
+                    current_mov=current_character.mov if not hasattr(action, 'remaining_mov') or action.remaining_mov is None else action.remaining_mov,
+                    skill_ap_cost=skill_ap_cost
+                )
+                
+                # 남은 리소스 설정
+                action.remaining_ap = costs['remaining_ap']
+                action.remaining_mov = costs['remaining_mov']
+        
         return result

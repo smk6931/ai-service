@@ -4,11 +4,12 @@ from app.models.combat import (
     BattleState, 
     CharacterState, 
     BattleActionResponse,
-    MonsterAction,
+    CharacterAction,
     BattleStateForAI,
     CharacterForAI
 )
 from app.ai.combat import CombatAI
+from app.utils.combat import calculate_manhattan_distance, calculate_action_costs
 
 class CombatService:
     def __init__(self):
@@ -29,8 +30,8 @@ class CombatService:
         try:
             # 기본 판단 로직 (AI가 실패할 경우 백업)
             current_character_id = state.current_character_id
-            monster_state = next((c for c in state.characters if c.id == current_character_id), None)
-            if not monster_state:
+            current_character = next((c for c in state.characters if c.id == current_character_id), None)
+            if not current_character:
                 raise ValueError(f"캐릭터 ID '{current_character_id}'를 찾을 수 없습니다.")
 
             # AI 판단을 위해 BattleState를 BattleStateForAI로 변환
@@ -38,7 +39,7 @@ class CombatService:
             
             try:
                 # AI 판단 시도
-                return await self.combat_ai.get_monster_action(ai_state)
+                return await self.combat_ai.get_character_action(ai_state)
             except Exception as e:
                 # AI 판단 실패시 기본 로직으로 폴백
                 print(f"AI 판단 실패: {str(e)}")
@@ -51,19 +52,18 @@ class CombatService:
         """BattleState를 AI 판단용 BattleStateForAI로 변환합니다"""
         characters = []
         
-        # 타겟 몬스터의 위치 찾기
-        target_monster = next((c for c in state.characters if c.id == state.current_character_id), None)
-        if not target_monster:
+        # 타겟 캐릭터의 위치 찾기
+        current_character = next((c for c in state.characters if c.id == state.current_character_id), None)
+        if not current_character:
             raise ValueError(f"타겟 몬스터 ID '{state.current_character_id}'를 찾을 수 없습니다.")
         
-        target_position = target_monster.position
         
         for char_state in state.characters:
             # 캐릭터 ID가 battle_config_map에 있는지 확인
             char_config = self.battle_config_map.get("characters", {}).get(char_state.id)
             
             # 맨하탄 거리 계산 - 타겟 몬스터와의 거리
-            distance = abs(char_state.position[0] - target_position[0]) + abs(char_state.position[1] - target_position[1])
+            distance = calculate_manhattan_distance(current_character.position, char_state.position)
             
             character = CharacterForAI(
                 id=char_state.id,
@@ -93,20 +93,49 @@ class CombatService:
         """AI 판단 실패시 사용할 기본 판단 로직"""
         current_character_id = state.current_character_id
         
-        # 타겟 캐릭터 선택 (monster 제외)
+        # 현재 몬스터 상태 가져오기
+        current_character = next((c for c in state.characters if c.id == current_character_id), None)
+        if not current_character:
+            raise ValueError(f"캐릭터 ID '{current_character_id}'를 찾을 수 없습니다.")
+        
+        # 타겟 캐릭터 선택
         target_characters = [c for c in state.characters if c.id != current_character_id]
         
         # 스킬은 전투 시작 시 저장된 config에서 가져옴
-        monster_config = self.battle_config_map.get("characters", {}).get(current_character_id)
-        skill_list = monster_config.skills if monster_config else ["찌르기"]
+        current_config = self.battle_config_map.get("characters", {}).get(current_character_id)
+        skill_list = current_config.skills if current_config else ["찌르기"]
         
         actions = []
         if target_characters and skill_list:
+            target = target_characters[0]
+            skill_name = skill_list[0]
+            
+            # 스킬 AP 소모량 가져오기
+            skill_ap_cost = 1  # 기본값
+            from app.utils.loader import skills
+            if skill_name in skills:
+                skill_ap_cost = skills[skill_name].get('ap', 1)
+            
+            # 타겟으로 이동
+            move_to_position = target.position
+            
+            # 이동 및 스킬 사용 비용 계산
+            costs = calculate_action_costs(
+                current_position=current_character.position,
+                target_position=move_to_position,
+                current_ap=current_character.ap,
+                current_mov=current_character.mov,
+                skill_ap_cost=skill_ap_cost
+            )
+            
             actions.append(
-                MonsterAction(
+                CharacterAction(
+                    move_to=move_to_position,
                     skill=skill_list[0],
-                    target_id=target_characters[0].id,
-                    reason="기본 판단 로직 사용 (AI 판단 실패)"
+                    target_character_id=target_characters[0].id,
+                    reason="기본 판단 로직 사용 (AI 판단 실패)",
+                    remaining_ap=costs['remaining_ap'],
+                    remaining_mov=costs['remaining_mov']
                 )
             )
         

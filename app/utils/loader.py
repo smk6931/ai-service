@@ -37,6 +37,13 @@ JSON 형식으로 출력하세요.
    예: (3, 4)에서 (1, 1)은 |3-1| + |4-1| = 5
 5. 모든 캐릭터는 `(position)` 필드로 좌표가 주어지며, 스킬에는 사거리와 AP 소모량이 명시되어 있습니다.
 6. `traits`, `status_effects`를 통해 캐릭터의 성격이나 상태 이상 정보를 활용하여 전략적으로 행동할 수 있습니다.
+7. MonsterAction 필드:
+   - move_to: 이동할 위치 좌표
+   - skill: 사용할 스킬 이름
+   - target_character_id: 타겟 캐릭터의 ID
+   - reason: 행동 선택 이유
+   - remaining_ap: 행동 후 남은 AP (시스템이 자동으로 계산)
+   - remaining_mov: 행동 후 남은 MOV (시스템이 자동으로 계산)
 
 전투 상황:
 {battle_state}

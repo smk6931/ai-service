@@ -32,17 +32,17 @@ class BattleState(BaseModel):
     current_character_id: str
 
 # 전투 판단 응답용 (LLM → 행동 판단)
-class MonsterAction(BaseModel):
-    move_to: Tuple[int, int] = Field(description="이동 할 좌표(이동이 필요하지 않은 경우 현재 좌표)")
+class CharacterAction(BaseModel):
+    move_to: Tuple[int, int] = Field(description="이동 할 좌표(이동이 하지 않는 경우 현재 좌표)")
     skill: str = Field(description="사용할 스킬의 이름")
     target_character_id: str = Field(description="스킬을 사용할 대상의 ID (이동 후 스킬의 사거리 내에 있어야 함)")
     reason: Optional[str] = Field(default=None, description="행동 선택 이유")
-    remaining_ap: Optional[int] = Field(default=None, description="남은 AP")
-    remaining_mov: Optional[int] = Field(default=None, description="남은 MOV")
+    remaining_ap: int = Field(default=None, description="남은 AP")
+    remaining_mov: int = Field(default=None, description="남은 MOV")
 
 class BattleActionResponse(BaseModel):
     current_character_id: str = Field(description="현재 캐릭터의 ID")
-    actions: List[MonsterAction] = Field(description="해당 턴에 사용하는 캐릭터의 행동 목록 (최대한 많은 행동을 수행하는 것이 중요)")
+    actions: List[CharacterAction] = Field(description="해당 턴에 사용하는 캐릭터의 행동 목록 (최대한 많은 행동을 수행하는 것이 중요)")
 
 # AI 판단 용 모델
 class CharacterForAI(CharacterConfig, CharacterState):
