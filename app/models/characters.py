@@ -3,6 +3,8 @@ from uuid import UUID
 from enum import Enum
 from typing import Optional, Dict, Any, List
 
+from app.models.items import EquipmentMaster
+
 class JobType(str, Enum):
     warrior = "warrior"
     archer = "archer"
@@ -90,4 +92,6 @@ class CharacterStatsUpdateResponse(BaseModel):
 
 class CharacterInfoResponse(BaseModel):
     message: str
+    user_id: UUID
     character_info: CharacterInfo
+    equipment_info: List[EquipmentMaster]

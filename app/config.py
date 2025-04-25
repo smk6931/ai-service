@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from pymongo import MongoClient
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
@@ -16,14 +17,18 @@ class Settings(BaseModel):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     
     @property
-    def DATABASE_URL(self) -> str:
+    def POSTGRESQL_URL(self) -> str:
         return (
             f"postgresql+psycopg2://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}"
             f"@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}"
         )
-
-    class Config:
-        case_sensitive = True
+    
+    @property
+    def MONGO_CONFIG(self) -> MongoClient:
+        mongo_url = f"mongodb://{self.DATABASE_HOST}:27017"
+        client = MongoClient(mongo_url)
+        db = client[self.DATABASE_NAME]
+        return db
 
 settings = Settings(
     DATABASE_HOST=os.getenv("DATABASE_HOST")
