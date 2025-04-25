@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-# from app.core.auth import get_current_user
-
-from app.db.users import Users
-from app.db.characters import Character, CharacterStats
 from app.db.database import SessionLocal
+from app.db.items import Item
+
+from app.models.characters import CharacterInfoRequest, CharacterInfoResponse
+
+from app.services.characters import get_character
+from app.services.items import get_equipment
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -18,17 +20,9 @@ def get_db():
     finally:
         db.close()
     
-@router.get("/")
-def get_me(
-    user_id: UUID = Query(..., description="유저 ID"),
-    db: Session = Depends(get_db)
-):
-    character = (
-        db.query(Character)
-        .filter_by(user_id=user_id)
-        .order_by(Character.created_time.desc())
-        .first()
-    )
+@router.post("/", response_model=CharacterInfoResponse)
+def get_me(request: CharacterInfoRequest, db: Session = Depends(get_db)):
+    character = get_character(request, db)
     
     if not character:
         raise HTTPException(status_code=404, detail="캐릭터가 존재하지 않습니다.")
@@ -61,6 +55,6 @@ def get_me(
 
     return {
         "message": "정보 조회 완료"
-        , "user_id": str(user_id)
+        , "user_id": str(request.user_id)
         , "character_info": character_info
     }

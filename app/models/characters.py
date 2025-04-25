@@ -25,6 +25,32 @@ class Position(BaseModel):
             }
         }
 
+class CharacterStats(BaseModel):
+    hp: int
+    attack: int
+    defense: int
+    resistance: int
+    critical_rate: float
+    critical_damage: float
+    move_range: int
+    speed: int
+    points: int
+
+class CharacterInfo(BaseModel):
+    character_id: UUID
+    character_name: str
+    job: JobType
+    gender: GenderType
+    traits: List[str]
+    level: int
+    current_exp: int
+    max_exp: int
+    position: Position
+    stats: CharacterStats
+
+class CharacterInfoRequest(BaseModel):
+    user_id: UUID
+
 class CharacterCreateRequest(BaseModel):
     user_id: UUID
     character_name: str = Field(..., max_length=10)
@@ -61,3 +87,7 @@ class CharacterCreateResponse(BaseModel):
 
 class CharacterStatsUpdateResponse(BaseModel):
     message: str
+
+class CharacterInfoResponse(BaseModel):
+    message: str
+    character_info: CharacterInfo
