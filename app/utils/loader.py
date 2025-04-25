@@ -18,8 +18,8 @@ traits = load_traits()
 status_effects = load_status_effects()
 
 prompt_combat_rules = """
-당신은 턴제 RPG 게임의 몬스터 AI입니다.
-아래의 전투 상황을 바탕으로, 몬스터가 이번 턴에 수행할 가장 적절한 행동들을 판단하고,
+당신은 턴제 RPG 게임의 캐릭터 AI입니다.
+아래의 전투 상황을 바탕으로, 캐릭터가 이번 턴에 수행할 가장 적절한 행동들을 판단하고,
 JSON 형식으로 출력하세요.
 
 전투 규칙:
@@ -37,7 +37,7 @@ JSON 형식으로 출력하세요.
    예: (3, 4)에서 (1, 1)은 |3-1| + |4-1| = 5
 5. 모든 캐릭터는 `(position)` 필드로 좌표가 주어지며, 스킬에는 사거리와 AP 소모량이 명시되어 있습니다.
 6. `traits`, `status_effects`를 통해 캐릭터의 성격이나 상태 이상 정보를 활용하여 전략적으로 행동할 수 있습니다.
-7. MonsterAction 필드:
+7. CharacterAction 필드:
    - move_to: 이동할 위치 좌표
    - skill: 사용할 스킬 이름
    - target_character_id: 타겟 캐릭터의 ID
@@ -65,15 +65,15 @@ prompt_battle_state_template = """
 플레이어 목록:
 {player_text}
 
-행동 대상 몬스터: [{current_id}] {current_name}
+행동 대상 캐릭터: [{current_id}] {current_name}
 
-몬스터의 스킬 정보:
-{target_skills_info}
+현재 캐릭터의 스킬 정보:
+{current_skills_info}
 
 상태 효과 정보:
-{status_effects_info}
+{current_status_effects_info}
 
 몬스터의 특성 정보:
-{target_traits_info}
+{current_traits_info}
 """
 

@@ -25,13 +25,13 @@ class CombatAI:
         
         self.chain = self.prompt | self.llm | self.parser
 
-    # 각 캐릭터와 타겟 몬스터 사이의 거리 계산
+    # 현재 캐릭터와 각 캐릭터 사이의 거리 계산
     def calculate_distances_from_target(self, state: BattleStateForAI):
-        """각 캐릭터와 타겟 몬스터 사이의 거리를 계산하여 설정합니다"""
-        # 타겟 몬스터 찾기
+        """현재 캐릭터와 각 캐릭터 사이의 거리를 계산하여 설정합니다"""
+        # 현재 캐릭터 찾기
         current = next((c for c in state.characters if c.id == state.current_character_id), None)
         if not current:
-            print("타겟 몬스터를 찾을 수 없습니다.")
+            print("현재 캐릭터를 찾을 수 없습니다.")
             return
         
         target_position = current.position
@@ -43,17 +43,17 @@ class CombatAI:
             )
             
         # 거리 정보를 포함하는 설명 추가
-        print(f"타겟 몬스터와의 거리 계산 완료: {[(c.id, c.distance) for c in state.characters]}")
+        print(f"현재 캐릭터와의 거리 계산 완료: {[(c.id, c.distance) for c in state.characters]}")
 
-    # 타겟 몬스터의 스킬 정보 추출
-    def get_target_monster_skills_info(self, state: BattleStateForAI) -> str:
-        """타겟 몬스터가 가진 스킬들의 정보를 추출하여 반환합니다"""
-        # 타겟 몬스터 찾기
+    # 현재 캐릭터의 스킬 정보 추출
+    def get_current_character_skills_info(self, state: BattleStateForAI) -> str:
+        """현재 캐릭터가 가진 스킬들의 정보를 추출하여 반환합니다"""
+        # 현재 캐릭터 찾기
         current = next((c for c in state.characters if c.id == state.current_character_id), None)
         if not current or not current.skills:
-            return "타겟 몬스터의 스킬 정보가 없습니다."
+            return "현재 캐릭터의 스킬 정보가 없습니다."
         
-        # 타겟 몬스터의 스킬 정보 생성
+        # 현재 캐릭터의 스킬 정보 생성
         skill_info = []
         # skill_info.append(f"## ({target.name})의 스킬 정보:")
         
@@ -79,10 +79,10 @@ class CombatAI:
         return "\n".join(skill_info)
 
     
-    # 타겟 몬스터의 스킬 효과 정보 추출
-    def get_status_effects_info(self, state: BattleStateForAI) -> str:
-        """타겟 몬스터의 스킬이 가진 효과들의 상세 정보를 추출하여 반환합니다"""
-        # 타겟 몬스터 찾기
+    # 현재 캐릭터의 스킬 효과 정보 추출
+    def get_current_character_status_effects_info(self, state: BattleStateForAI) -> str:
+        """현재 캐릭터의 스킬이 가진 효과들의 상세 정보를 추출하여 반환합니다"""
+        # 현재 캐릭터 찾기
         current = next((c for c in state.characters if c.id == state.current_character_id), None)
         if not current or not current.skills:
             return "스킬 효과 정보가 없습니다."
@@ -125,15 +125,15 @@ class CombatAI:
         
         return "\n".join(effect_info)
     
-    # 타겟 몬스터의 특성 정보 추출
-    def get_target_monster_traits_info(self, state: BattleStateForAI) -> str:
-        """타겟 몬스터의 특성 정보를 추출하여 반환합니다"""
-        # 타겟 몬스터 찾기
+    # 현재 캐릭터의 특성 정보 추출
+    def get_current_character_traits_info(self, state: BattleStateForAI) -> str:
+        """현재 캐릭터의 특성 정보를 추출하여 반환합니다"""
+        # 현재 캐릭터 찾기
         current = next((c for c in state.characters if c.id == state.current_character_id), None)
         # print("CURRENT: ", current)
         # print("CURRENT TRAITS: ", current.traits)
         if not current or not current.traits:
-            return "타겟 몬스터의 특성 정보가 없습니다."
+            return "현재 캐릭터의 특성 정보가 없습니다."
         
         trait_info = []
         # trait_info.append("## 특성 정보:")
@@ -162,7 +162,7 @@ class CombatAI:
 
     # 거리 정보 추가 함수
     def get_distance_info(self, state: BattleStateForAI) -> str:
-        """각 캐릭터와 타겟 몬스터 사이의 거리 정보를 문자열로 반환합니다"""
+        """현재 캐릭터와 각 캐릭터 사이의 거리 정보를 문자열로 반환합니다"""
         current = next((c for c in state.characters if c.id == state.current_character_id), None)
         if not current:
             return "거리 정보를 계산할 수 없습니다."
@@ -178,7 +178,7 @@ class CombatAI:
 
     # 프롬프트 텍스트 생성 함수
     def convert_state_to_prompt_text(self, state: BattleStateForAI) -> str:
-        # 먼저 각 캐릭터와 타겟 몬스터 사이의 거리 계산
+        # 먼저 현재 캐릭터와 각 캐릭터 사이의 거리 계산
         self.calculate_distances_from_target(state)
         
         characters = state.characters
@@ -186,7 +186,7 @@ class CombatAI:
         players = [c for c in characters if c.type == "player"]
 
         def char_desc(c):
-            base = f"- [{c.id}] {c.name} (HP: {c.hp}, AP: {c.ap}, 위치: {c.position}, range: {c.distance})"
+            base = f"- [{c.id}] {c.name} (HP: {c.hp}, AP: {c.ap}, MOV: {c.mov}, 위치: {c.position}, range: {c.distance})"
             
             if c.status_effects:
                 base += f", 상태이상: {', '.join(c.status_effects)}"
@@ -201,16 +201,16 @@ class CombatAI:
 
         current = next((c for c in characters if c.id == state.current_character_id), None)
         if not current:
-            raise ValueError("해당 ID의 몬스터가 존재하지 않습니다")
+            raise ValueError("해당 ID의 캐릭터가 존재하지 않습니다")
         
-        # 타겟 몬스터의 스킬 정보 가져오기
-        target_skills_info = self.get_target_monster_skills_info(state)
+        # 현재 캐릭터의 스킬 정보 가져오기
+        current_skills_info = self.get_current_character_skills_info(state)
         
-        # 타겟 몬스터의 특성 정보 가져오기
-        target_traits_info = self.get_target_monster_traits_info(state)
+        # 현재 캐릭터의 특성 정보 가져오기
+        current_traits_info = self.get_current_character_traits_info(state)
         
-        # 타겟 몬스터의 스킬 효과 정보 가져오기
-        status_effects_info = self.get_status_effects_info(state)
+        # 현재 캐릭터의 스킬 효과 정보 가져오기
+        current_status_effects_info = self.get_current_character_status_effects_info(state)
         
         # # 거리 정보 추가
         # distance_info = self.get_distance_info(state)
@@ -225,23 +225,29 @@ class CombatAI:
             player_text=player_text,
             current_id=current.id,
             current_name=current.name,
-            target_skills_info=target_skills_info,
-            target_traits_info=target_traits_info,
-            status_effects_info=status_effects_info
+            current_skills_info=current_skills_info,
+            current_traits_info=current_traits_info,
+            current_status_effects_info=current_status_effects_info
         )
         
         print(prompt_battle_state)
         return prompt_battle_state
 
     async def get_character_action(self, battle_state: BattleStateForAI) -> BattleActionResponse:
-        """몬스터의 다음 행동을 AI로 결정합니다"""
+        """캐릭터의 다음 행동을 AI로 결정합니다"""
         prompt_text = self.convert_state_to_prompt_text(battle_state)
         result = await self.chain.ainvoke({"battle_state": prompt_text})
         
-        # 리소스 계산 로직 추가
+        # 리소스 계산 로직 개선
         current_character = next((c for c in battle_state.characters if c.id == battle_state.current_character_id), None)
         if current_character and result.actions:
-            for action in result.actions:
+            # 초기 리소스 값 설정
+            current_ap = current_character.ap
+            current_mov = current_character.mov
+            current_position = current_character.position
+            
+            # 각 행동마다 순차적으로 리소스 계산
+            for i, action in enumerate(result.actions):
                 # 스킬 AP 소모량 가져오기
                 skill_ap_cost = 1  # 기본값
                 if action.skill in skills:
@@ -249,15 +255,26 @@ class CombatAI:
                 
                 # 이동 및 행동 비용 계산
                 costs = calculate_action_costs(
-                    current_position=current_character.position,
+                    current_position=current_position,
                     target_position=action.move_to,
-                    current_ap=current_character.ap if not hasattr(action, 'remaining_ap') or action.remaining_ap is None else action.remaining_ap,
-                    current_mov=current_character.mov if not hasattr(action, 'remaining_mov') or action.remaining_mov is None else action.remaining_mov,
+                    current_ap=current_ap,
+                    current_mov=current_mov,
                     skill_ap_cost=skill_ap_cost
                 )
                 
-                # 남은 리소스 설정
+                # 남은 리소스 설정 및 다음 행동을 위한 상태 업데이트
                 action.remaining_ap = costs['remaining_ap']
                 action.remaining_mov = costs['remaining_mov']
+                
+                # 행동 가능 여부 확인
+                if not costs['can_perform']:
+                    # 리소스 부족으로 행동 불가능한 경우 이 행동과 이후 행동 삭제
+                    result.actions = result.actions[:i]
+                    break
+                
+                # 다음 행동을 위한 상태 업데이트
+                current_ap = action.remaining_ap
+                current_mov = action.remaining_mov
+                current_position = action.move_to
         
         return result

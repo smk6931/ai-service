@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Dict, Any
 
 def calculate_manhattan_distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> int:
     """두 위치 간의 맨하탄 거리(가로+세로 이동 거리)를 계산합니다"""
@@ -10,7 +10,7 @@ def calculate_action_costs(
     current_ap: int, 
     current_mov: int, 
     skill_ap_cost: int
-) -> dict:
+) -> Dict[str, Any]:
     """행동에 필요한 비용을 계산하고 남은 리소스를 반환합니다
     
     Args:
@@ -35,12 +35,20 @@ def calculate_action_costs(
     # 남은 AP 계산 (스킬 사용 비용 차감)
     remaining_ap = current_ap - skill_ap_cost
     
-    # 행동 가능 여부 판단
-    can_perform = remaining_mov >= 0 and remaining_ap >= 0
+    # 행동 가능 여부 판단 (조건 세분화)
+    mov_ok = remaining_mov >= 0
+    ap_ok = remaining_ap >= 0
+    can_perform = mov_ok and ap_ok
     
+    # 더 상세한 정보 반환
     return {
         'move_cost': move_cost,
-        'remaining_ap': remaining_ap,
-        'remaining_mov': remaining_mov,
-        'can_perform': can_perform
+        'remaining_ap': max(0, remaining_ap),  # 음수 방지
+        'remaining_mov': max(0, remaining_mov),  # 음수 방지
+        'can_perform': can_perform,
+        'reason_if_fail': None if can_perform else (
+            "AP 부족" if not ap_ok else 
+            "MOV 부족" if not mov_ok else 
+            "알 수 없는 이유"
+        )
     } 
