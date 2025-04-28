@@ -41,6 +41,7 @@ class CombatService:
                 return await self.combat_ai.get_monster_action(ai_state)
             except Exception as e:
                 # AI 판단 실패시 기본 로직으로 폴백
+                print(f"AI 판단 실패: {str(e)}")
                 return self._fallback_decision(state)
         
         except Exception as e:
@@ -61,14 +62,15 @@ class CombatService:
                 position=char_state.position,
                 hp=char_state.hp,
                 ap=char_state.ap,
-                status=char_state.status,
-                personality=char_config.personality if char_config else None,
+                status_effects=char_state.status_effects,
+                traits=char_config.traits if char_config else [],
                 skills=char_config.skills if char_config else []
             )
             characters.append(character)
         
         return BattleStateForAI(
             characters=characters,
+            cycle=state.cycle,
             turn=state.turn,
             target_monster_id=state.target_monster_id,
             terrain=self.battle_config_map.get("terrain", "일반"),
