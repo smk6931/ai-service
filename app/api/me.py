@@ -5,10 +5,10 @@ from uuid import UUID
 from app.db.database import SessionLocal
 
 from app.models.characters import CharacterInfoRequest, CharacterInfoResponse
-from app.models.items import EquipmentGetRequest
+from app.models.items import EquipmentGetRequest, InventoryGetRequest
 
 from app.services.characters import get_character
-from app.services.items import get_character_equipment
+from app.services.items import get_character_equipment, get_character_inventory
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -54,10 +54,12 @@ def get_me(request: CharacterInfoRequest, db: Session = Depends(get_db)):
         }
 
         equipment_info = get_character_equipment(EquipmentGetRequest(character_id=character.character_id), db)
-        
+        inventory_info = get_character_inventory(InventoryGetRequest(character_id=character.character_id), db)
+
     return {
         "message": "정보 조회 완료"
         , "user_id": str(request.user_id)
         , "character_info": character_info
         , "equipment_info": equipment_info
+        , "inventory_info": inventory_info
     }
