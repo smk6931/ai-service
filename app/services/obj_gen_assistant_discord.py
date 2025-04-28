@@ -7,7 +7,6 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
-from langchain.chains import LLMChain
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
@@ -36,7 +35,7 @@ def log_interaction(entry: dict):
 # 1) 벡터DB 불러오기 및 리트리버 설정
 embedding_model = HuggingFaceEmbeddings(model_name="nlpai-lab/KURE-v1")
 db_scene_desc = Chroma(
-    persist_directory="vector_db/loreless",
+    persist_directory="./app/vector_db/loreless_act1",
     embedding_function=embedding_model,
     collection_name="loreless_act_1"
 )
