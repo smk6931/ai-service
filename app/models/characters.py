@@ -3,7 +3,7 @@ from uuid import UUID
 from enum import Enum
 from typing import Optional, Dict, Any, List
 
-from app.models.items import EquipmentMaster
+from app.models.items import EquipmentMaster, InventoryMaster
 
 class JobType(str, Enum):
     warrior = "warrior"
@@ -94,4 +94,5 @@ class CharacterInfoResponse(BaseModel):
     message: str
     user_id: UUID
     character_info: CharacterInfo
-    equipment_info: List[EquipmentMaster]
+    equipment_info: EquipmentMaster
+    inventory_info: InventoryMaster
