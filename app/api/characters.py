@@ -5,17 +5,9 @@ from app.services import characters
 
 from app.models.characters import CharacterCreateRequest, CharacterCreateResponse, CharacterUpdateRequest, CharacterUpdateResponse, CharacterStatsUpdateRequest, CharacterStatsUpdateResponse
 
-from app.db.database import SessionLocal
+from app.utils.database import get_db
 
 router = APIRouter(prefix="/characters", tags=["characters"])
-
-# DB 세션 의존성
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 @router.post("/create", response_model=CharacterCreateResponse, status_code=200)
 def create_character(data: CharacterCreateRequest, db: Session = Depends(get_db)):
