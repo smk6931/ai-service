@@ -11,19 +11,10 @@ from app.core.auth import get_current_user
 from app.models.users import RegisterRequest, LoginRequest, RefreshRequest, RegisterResponse, LoginResponse, RefreshResponse
 
 from app.utils.database import get_db
-# from app.db.database import SessionLocal
 
 from app.config import settings
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-# # DB 세션 의존성
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
 
 @router.post("/register", response_model=RegisterResponse, status_code=200)
 def register_user(request: RegisterRequest, db: Session = Depends(get_db)):

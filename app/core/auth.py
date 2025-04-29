@@ -3,20 +3,10 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy.orm import Session
 from app.core.security import decode_access_token
-from app.db.database import SessionLocal
 from app.db.users import Users
 from app.utils.database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login")
-
-# # DB 세션 주입
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
-
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> Users:
     user_id = decode_access_token(token)
 
