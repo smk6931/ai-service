@@ -10,20 +10,20 @@ from app.core.auth import get_current_user
 
 from app.models.users import RegisterRequest, LoginRequest, RefreshRequest, RegisterResponse, LoginResponse, RefreshResponse
 
-from app.db.users import Users
-from app.db.database import SessionLocal
+from app.utils.database import get_db
+# from app.db.database import SessionLocal
 
 from app.config import settings
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-# DB 세션 의존성
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# # DB 세션 의존성
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
 
 @router.post("/register", response_model=RegisterResponse, status_code=200)
 def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
@@ -83,10 +83,3 @@ def refresh_access_token(request: RefreshRequest, db: Session = Depends(get_db))
         "message": "토큰 갱신 완료"
         , "access_token": new_access_token
     }
-
-# @router.get("/me")
-# def get_me(current_user: Users = Depends(get_current_user)):
-#     return {
-#         "message": "정보 조회 완료"
-#         , "user_id": str(current_user.user_id)
-#     }

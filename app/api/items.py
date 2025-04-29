@@ -5,16 +5,17 @@ from app.services import items
 
 from app.models.items import EquipmentUpsertRequest, EquipmentUpsertResponse, InventoryUpsertRequest, InventoryUpsertResponse
 
-from app.db.database import SessionLocal
+# from app.db.database import SessionLocal
+from app.utils.database import get_db
 
 router = APIRouter(prefix="/items", tags=["items"])
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
 
 @router.post("/upsert/equipment", response_model=EquipmentUpsertResponse, status_code=200)
 def upsert_character_equipment(data: EquipmentUpsertRequest, db: Session = Depends(get_db)):

@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from app.db.database import SessionLocal
+# from app.db.database import SessionLocal
+from app.utils.database import get_db
 
 from app.models.characters import CharacterInfoRequest, CharacterInfoResponse
 from app.models.items import EquipmentGetRequest, InventoryGetRequest
@@ -12,13 +13,13 @@ from app.services.items import get_character_equipment, get_character_inventory
 
 router = APIRouter(prefix="/me", tags=["me"])
 
-# DB 세션 의존성
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# # DB 세션 의존성
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
     
 @router.post("/", response_model=CharacterInfoResponse)
 def get_me(request: CharacterInfoRequest, db: Session = Depends(get_db)):
