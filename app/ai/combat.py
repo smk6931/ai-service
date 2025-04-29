@@ -53,25 +53,29 @@ class CombatAI:
         if not current or not current.skills:
             return {}
         
-        # 현재 캐릭터의 위치
+        # 현재 캐릭터의 위치와 타입
         current_position = current.position
+        current_type = current.type
         
         # 스킬별 사거리 내 대상 목록
         targets_in_range = {}
         
-        # 현재 캐릭터와 다른 타입의 캐릭터를 대상으로 함
-        target_characters = [c for c in state.characters if c.id != current.id]
+        # 현재 캐릭터와 다른 타입의 캐릭터를 대상으로 함 (몬스터→플레이어, 플레이어→몬스터)
+        target_type = "player" if current_type == "monster" else "monster"
+        target_characters = [c for c in state.characters if c.type == target_type]
         
         # 각 스킬에 대해 사거리 확인
         for skill_name in current.skills:
+            # 스킬 정보 가져오기
+            skill_data = skills.get(skill_name, {})
+            skill_range = skill_data.get('range', 1)
+            
+            # 자체 버프 스킬이나 힐링 스킬은 제외하거나 다른 방식으로 처리할 수 있음
+            # 여기서는 간단히 모든 스킬을 공격 스킬로 가정
+            
             targets_in_range[skill_name] = []
             
-            # 스킬 정보 가져오기
-            skill_range = 1  # 기본 사거리
-            if skill_name in skills:
-                skill_range = skills[skill_name].get('range', 1)
-            
-            # 각 캐릭터와의 거리 계산하여 사거리 내에 있는지 확인
+            # 각 타겟 캐릭터와의 거리 계산하여 사거리 내에 있는지 확인
             for character in target_characters:
                 distance = calculate_manhattan_distance(current_position, character.position)
                 if distance <= skill_range:
@@ -110,10 +114,11 @@ class CombatAI:
         if not current or not current.skills:
             return {}
         
-        # 현재 위치 및 리소스
+        # 현재 위치, 리소스, 타입
         current_position = current.position
         current_ap = current.ap
         current_mov = current.mov
+        current_type = current.type
         
         # 이동 가능한 위치들
         movable_positions = self.calculate_movable_positions(state)
@@ -125,8 +130,9 @@ class CombatAI:
             "최적_행동_추천": []  # 추천 행동 목록
         }
         
-        # 타겟 캐릭터들 (다른 캐릭터)
-        target_characters = [c for c in state.characters if c.id != current.id]
+        # 타겟 캐릭터들 - 반대 타입만 선택 (몬스터→플레이어, 플레이어→몬스터)
+        target_type = "player" if current_type == "monster" else "monster"
+        target_characters = [c for c in state.characters if c.type == target_type]
         
         # 각 스킬에 대해 분석
         for skill_name in current.skills:
@@ -304,6 +310,14 @@ class CombatAI:
     # 전투 상황 분석 정보 생성
     def generate_battle_analysis(self, state: BattleStateForAI) -> str:
         """현재 전투 상황에 대한 상세 분석 정보를 생성합니다"""
+        # 현재 캐릭터 정보 가져오기
+        current = next((c for c in state.characters if c.id == state.current_character_id), None)
+        if not current:
+            return "## 전투 상황 분석\n- 현재 캐릭터 정보를 찾을 수 없습니다."
+            
+        # 현재 캐릭터 타입
+        current_type = current.type
+        
         # 사거리 내 공격 가능한 대상 찾기
         targets_in_range = self.find_targets_in_range(state)
         
@@ -312,14 +326,20 @@ class CombatAI:
         
         # 분석 정보 생성
         analysis_text = ["## 전투 상황 분석"]
+        analysis_text.append(f"- 현재 캐릭터: [{current.id}] {current.name} ({current_type}) - HP: {current.hp}, AP: {current.ap}, MOV: {current.mov}")
+        
+        # 타겟 목록 설명
+        target_type = "플레이어" if current_type == "monster" else "몬스터"
+        analysis_text.append(f"- {target_type}만 공격 가능합니다.")
         
         # 1. 현재 위치에서 직접 공격 가능한 대상
         analysis_text.append("\n### 현재 위치에서 공격 가능한 대상")
-        if targets_in_range:
+        if any(target_ids for target_ids in targets_in_range.values()):
             for skill_name, target_ids in targets_in_range.items():
                 if target_ids:
                     skill_ap = skills.get(skill_name, {}).get('ap', 0)
-                    analysis_text.append(f"- {skill_name}(AP: {skill_ap})로 공격 가능한 대상: {', '.join(target_ids)}")
+                    skill_range = skills.get(skill_name, {}).get('range', 1)
+                    analysis_text.append(f"- {skill_name}(AP: {skill_ap}, 사거리: {skill_range})로 공격 가능한 대상: {', '.join(target_ids)}")
                 else:
                     analysis_text.append(f"- {skill_name}으로 공격 가능한 대상 없음")
         else:
@@ -338,7 +358,8 @@ class CombatAI:
         if move_skill_analysis.get("이동_후_공격_가능"):
             for skill_name, targets in move_skill_analysis["이동_후_공격_가능"].items():
                 skill_ap = skills.get(skill_name, {}).get('ap', 0)
-                analysis_text.append(f"\n- {skill_name}(AP: {skill_ap}) 사용 시:")
+                skill_range = skills.get(skill_name, {}).get('range', 1)
+                analysis_text.append(f"\n- {skill_name}(AP: {skill_ap}, 사거리: {skill_range}) 사용 시:")
                 
                 for target_id, positions in targets.items():
                     if positions:
