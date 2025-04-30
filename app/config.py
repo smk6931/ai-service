@@ -6,6 +6,9 @@ from pymongo import MongoClient
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
 class Settings(BaseModel):
+    OPENAI_API_KEY: str
+    OPENAI_MODEL: str
+    
     DATABASE_HOST: str
     DATABASE_NAME: str
     DATABASE_USER: str
@@ -31,7 +34,9 @@ class Settings(BaseModel):
         return db
 
 settings = Settings(
-    DATABASE_HOST=os.getenv("DATABASE_HOST")
+    OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
+    , OPENAI_MODEL=os.getenv("OPENAI_MODEL")
+    , DATABASE_HOST=os.getenv("DATABASE_HOST")
     , DATABASE_NAME=os.getenv("DATABASE_NAME")
     , DATABASE_USER=os.getenv("DATABASE_USER")
     , DATABASE_PORT=int(os.getenv("DATABASE_PORT"))

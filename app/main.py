@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from app.api.combat import router as combat_router
 from app.api.users import router as users_router
 from app.api.characters import router as characters_router
+from app.api.characters import ws_router as characters_ws_router
 from app.api.items import router as items_router
 from app.api.me import router as me_router
 from app.api.npc_chat import router as npc_chat_router
@@ -29,6 +30,7 @@ app.add_middleware(
 app.include_router(combat_router)
 app.include_router(users_router)
 app.include_router(characters_router)
+app.include_router(characters_ws_router)
 app.include_router(items_router)
 app.include_router(me_router)
 app.include_router(npc_chat_router)
