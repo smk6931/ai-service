@@ -38,7 +38,7 @@ class CombatService:
             ai_state = self._convert_to_ai_state(state)
             
             try:
-                # AI 판단 시도
+                # AI 판단 시도 (LangGraph 또는 기존 체인 사용)
                 return await self.combat_ai.get_character_action(ai_state)
             except Exception as e:
                 # AI 판단 실패시 기본 로직으로 폴백
@@ -211,4 +211,5 @@ class CombatService:
         return BattleActionResponse(
             current_character_id=current_character_id,
             actions=actions
-        ) 
+        )
+        
