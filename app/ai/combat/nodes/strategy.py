@@ -1,5 +1,6 @@
+import json
 from typing import Dict, Any, List
-from langchain_core.messages import SystemMessage, AIMessage
+from langchain_core.messages import SystemMessage, AIMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -18,34 +19,49 @@ def decide_strategy(state: CombatState) -> Dict[str, Any]:
     """
     # 디버깅: 입력 데이터 출력
     debug_node("전략 결정 (시작)", input_data=state)
-    
-    battle_state = state["battle_state"]
-    situation_analysis = state["situation_analysis"]
-    
-    # 현재 캐릭터 정보 확인
-    current = get_current_character(battle_state)
-    if not current:
-        result = {
-            "strategy_decision": {"error": "현재 캐릭터를 찾을 수 없습니다"},
-            "messages": [SystemMessage(content="[시스템] 전략 결정 중 오류: 현재 캐릭터 정보를 찾을 수 없습니다.")]
-        }
-        debug_node("전략 결정 (에러)", output_data=result)
-        return result
-    
-    # 캐릭터의 특성(traits) 분석
-    character_traits = current.traits
-    traits_info = {}
-    
-    for trait in character_traits:
-        if trait in traits:
-            traits_info[trait] = traits[trait]
-    
-    # LLM을 사용하여 전략 결정
+ 
     try:
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+        battle_state = state["battle_state"]
+        print("[battle_state]", battle_state)
         
-        strategy_prompt = ChatPromptTemplate.from_messages([
-            ("system", prompt_combat_rules + """
+        situation_analysis = state.get("situation_analysis", {})
+        
+        # situation_analysis를 문자열로 변환
+        if isinstance(situation_analysis, dict):
+            try:
+                situation_text = json.dumps(situation_analysis, ensure_ascii=False, indent=2)
+            except:
+                # 직렬화가 실패한 경우, 간단한 문자열 표현 사용
+                situation_text = str(situation_analysis)
+        else:
+            situation_text = str(situation_analysis)
+        
+        # 현재 캐릭터 정보 확인
+        current = get_current_character(battle_state)
+        if not current:
+            result = {
+                "strategy_decision": {"error": "현재 캐릭터를 찾을 수 없습니다"},
+                "messages": [SystemMessage(content="[시스템] 전략 결정 중 오류: 현재 캐릭터 정보를 찾을 수 없습니다.")]
+            }
+            debug_node("전략 결정 (에러)", output_data=result)
+            return result
+        
+        # 캐릭터의 특성(traits) 분석
+        character_traits = current.traits or []
+        traits_info = {}
+        
+        for trait in character_traits:
+            if trait in traits:
+                traits_info[trait] = traits[trait]
+        
+        # 특성 정보도 JSON으로 직렬화
+        try:
+            traits_info_text = json.dumps(traits_info, ensure_ascii=False, indent=2)
+        except:
+            traits_info_text = str(traits_info)
+        
+        # 시스템 프롬프트 내용
+        system_content = prompt_combat_rules + """
 당신은 전투 전략 결정을 위한 AI 전문가입니다.
 현재 캐릭터의 특성(traits)을 고려하여 가장 적합한 전략을 선택하세요.
 응답은 다음 JSON 형식으로만 작성하세요:
@@ -55,8 +71,10 @@ def decide_strategy(state: CombatState) -> Dict[str, Any]:
   "행동_계획": "구체적인 행동 계획 설명",
   "이유": "이 전략을 선택한 이유"
 }
-"""),
-            ("human", f"""
+"""
+        
+        # 휴먼 프롬프트 내용
+        human_content = f"""
 ## 현재 상황
 - 현재 캐릭터: {current.name} ({current.type})
 - 특성: {', '.join(character_traits) if character_traits else '없음'}
@@ -65,17 +83,28 @@ def decide_strategy(state: CombatState) -> Dict[str, Any]:
 - 위치: {current.position}
 
 ## 특성 정보
-{traits_info}
+{traits_info_text}
 
 ## 전투 상황
-{situation_analysis}
+{situation_text}
 
 현재 캐릭터 특성과 전투 상황을 고려한 최적의 전략은 무엇입니까?
-""")
+"""
+
+        # LLM을 사용하여 전략 결정
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+        print("[run llm]")
+        
+        # 명시적 Message 객체 사용 
+        strategy_prompt = ChatPromptTemplate.from_messages([
+            SystemMessage(content=system_content),
+            HumanMessage(content=human_content)
         ])
 
-        response = llm.invoke(strategy_prompt)
-        
+        messages = strategy_prompt.format_messages()
+        print("[messages]", messages)
+        response = llm.invoke(messages)
+        print("[response]", response)
         # 응답 처리
         strategy_decision = {
             "strategy_text": response.content,
