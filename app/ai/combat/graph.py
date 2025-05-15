@@ -17,7 +17,6 @@ def create_response(state: CombatState) -> Dict[str, Any]:
     최종 응답 생성 노드
     - 모든 단계가 완료된 후 최종 응답 형식 생성
     """
-    # 디버깅: 입력 데이터 출력
     debug_node("응답 생성 (시작)", input_data=state)
     
     battle_state = state["battle_state"]
@@ -34,8 +33,7 @@ def create_response(state: CombatState) -> Dict[str, Any]:
         "messages": [SystemMessage(content=f"[시스템] 전투 결정 완료: {len(final_actions)}개의 행동")]
     }
     
-    # 디버깅: 최종 응답 출력
-    debug_node("응답 생성 (완료)", output_data=result)
+    debug_node("응답 생성 (완료)", input_data=state, output_data=result)
     
     return result
 
@@ -74,7 +72,7 @@ def create_combat_graph() -> StateGraph:
     
     print("\n" + "=" * 50)
     print("전투 그래프 생성 완료")
-    print("그래프 순서: 상황분석 → 전략결정 → 타겟선택 → 행동생성 → 리소스계산 → 응답생성")
+    print("그래프 순서: 상황분석(situation) → 전략결정(strategy) → 타겟선택(target) → 행동생성(action) → 리소스계산(resource) → 응답생성(response)")
     print("=" * 50 + "\n")
     
     return compiled_graph 

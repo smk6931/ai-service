@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, AIMessage
 from app.ai.combat.states import CombatState
 from app.ai.combat.utils import get_current_character, calculate_manhattan_distance
 from app.models.combat import CharacterAction
@@ -15,8 +15,7 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
     - 리소스 부족 시 행동 조정
     - 최종 행동 계획 결정
     """
-    # 디버깅: 입력 데이터 출력
-    debug_node("리소스 계산 (시작)", input_data=state)
+    # 디버깅 출력 제거
     
     battle_state = state["battle_state"]
     planned_actions = state.get("planned_actions", [])
@@ -25,21 +24,21 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
     current = get_current_character(battle_state)
     if not current:
         result = {
-            "resource_calculation": {"error": "현재 캐릭터를 찾을 수 없습니다"},
             "final_actions": [],
+            "resource_calculation": {"error": "현재 캐릭터를 찾을 수 없습니다"},
             "messages": [SystemMessage(content="[시스템] 리소스 계산 중 오류: 현재 캐릭터 정보를 찾을 수 없습니다.")]
         }
-        debug_node("리소스 계산 (에러)", output_data=result)
+        debug_node("리소스 계산 (에러)", input_data=state, output_data=result, error=True)
         return result
     
     # 계획된 행동이 없는 경우
     if not planned_actions:
         result = {
-            "resource_calculation": {"info": "계획된 행동이 없습니다"},
             "final_actions": [],
-            "messages": [SystemMessage(content="[시스템] 리소스 계산: 계획된 행동이 없습니다.")]
+            "resource_calculation": {"warning": "계획된 행동이 없습니다"},
+            "messages": [SystemMessage(content="[시스템] 리소스 계산 중 경고: 계획된 행동이 없습니다.")]
         }
-        debug_node("리소스 계산 (빈 행동)", output_data=result)
+        debug_node("리소스 계산 (경고)", input_data=state, output_data=result, error=True)
         return result
     
     # 초기 리소스
@@ -95,10 +94,14 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
             resource_calculations.append(calculation)
             
             # 디버깅: 리소스 부족 행동 로그
-            debug_node(f"리소스 계산 - 행동 {i+1} 불가능", {
+            debug_node(f"리소스 계산 - 행동 {i+1} 불가능", input_data={
+                "current_state": state,
+                "action": action,
+                "calculation": calculation
+            }, output_data={
                 "action": f"{action.skill} -> {action.target_character_id}",
                 "reason": calculation["reason"]
-            })
+            }, error=True)
             
             break
         
@@ -146,7 +149,47 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
         "messages": [SystemMessage(content=summary)]
     }
     
-    # 디버깅: 출력 데이터 출력
-    debug_node("리소스 계산 (완료)", output_data=result)
-    
+    # 디버깅 출력 제거
     return result 
+
+
+def _adjust_move_distance(start_pos, target_pos, available_mov):
+    """이동 거리 조정"""
+    import math
+    
+    # 시작 위치와 타겟 위치가 같으면 조정 불필요
+    if start_pos == target_pos:
+        return start_pos
+    
+    # 각 축의 거리
+    dx = target_pos[0] - start_pos[0]
+    dy = target_pos[1] - start_pos[1]
+    
+    # 맨해튼 거리
+    manhattan_dist = abs(dx) + abs(dy)
+    
+    # 이동 가능한 경우
+    if manhattan_dist <= available_mov:
+        return target_pos
+    
+    # 이동 거리 조정
+    ratio = available_mov / manhattan_dist
+    move_x = round(dx * ratio)
+    move_y = round(dy * ratio)
+    
+    # 조정된 위치
+    adjusted_pos = (start_pos[0] + move_x, start_pos[1] + move_y)
+    
+    # 이동 가능한지 다시 확인
+    new_dist = abs(adjusted_pos[0] - start_pos[0]) + abs(adjusted_pos[1] - start_pos[1])
+    
+    if new_dist > available_mov:
+        # 반올림 오차로 여전히 초과하면 더 조정
+        if abs(move_x) > abs(move_y):
+            move_x = move_x - (1 if move_x > 0 else -1)
+        else:
+            move_y = move_y - (1 if move_y > 0 else -1)
+        
+        adjusted_pos = (start_pos[0] + move_x, start_pos[1] + move_y)
+    
+    return adjusted_pos 

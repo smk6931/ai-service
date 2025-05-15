@@ -3,17 +3,26 @@ import json
 from typing import Dict, Any, Optional
 import pprint
 
-def debug_node(node_name: str, input_data: Optional[Dict[str, Any]] = None, output_data: Optional[Dict[str, Any]] = None):
+def debug_node(node_name: str, input_data: Optional[Dict[str, Any]] = None, output_data: Optional[Dict[str, Any]] = None, error: bool = False):
     """노드 입력/출력 데이터를 이쁘게 출력하는 디버깅 유틸리티
     
     Args:
         node_name: 노드 이름
         input_data: 입력 데이터 (없으면 출력 안함)
         output_data: 출력 데이터 (없으면 출력 안함)
+        error: 에러 발생 여부 (True면 항상 출력)
     """
+    # 마지막 노드인 경우 또는 에러가 있는 경우에만 출력
+    if not (error or "응답 생성" in node_name):
+        return
+        
     print(f"\n{'=' * 50}")
-    print(f"노드: {node_name}")
+    if error:
+        print(f"[에러] 노드: {node_name}")
+    else:
+        print(f"노드: {node_name}")
     
+    # 에러 발생 시 또는 마지막 노드인 경우에는 항상 입력 데이터 출력
     if input_data:
         print(f"\n입력 데이터:")
         # 핵심 정보만 선택적으로 표시

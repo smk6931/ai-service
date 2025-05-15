@@ -14,8 +14,7 @@ def analyze_situation(state: CombatState) -> Dict[str, Any]:
     - 이동 가능한 범위 계산
     - 지형, 날씨 등 환경 요소 고려
     """
-    # 디버깅: 입력 데이터 출력
-    debug_node("상황 분석 (시작)", input_data=state)
+    # 디버깅: 입력 데이터는 더 이상 시작 시 출력하지 않음
     
     battle_state = state["battle_state"]
     current = get_current_character(battle_state)
@@ -25,7 +24,7 @@ def analyze_situation(state: CombatState) -> Dict[str, Any]:
             "situation_analysis": {"error": "현재 캐릭터를 찾을 수 없습니다"},
             "messages": [SystemMessage(content="[시스템] 현재 캐릭터 정보를 찾을 수 없습니다.")]
         }
-        debug_node("상황 분석 (에러)", output_data=result)
+        debug_node("상황 분석 (에러)", input_data=state, output_data=result, error=True)
         return result
     
     # 직접 공격 가능한 타겟 분석
@@ -87,7 +86,6 @@ def analyze_situation(state: CombatState) -> Dict[str, Any]:
         "messages": [SystemMessage(content=summary_content)]
     }
     
-    # 디버깅: 출력 데이터 출력
-    debug_node("상황 분석 (완료)", output_data=result)
+    # 디버깅: 마지막 노드가 아니므로 일반적인 출력은 하지 않음
     
     return result 

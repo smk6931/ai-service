@@ -207,7 +207,7 @@ class CombatAI:
         """캐릭터의 다음 행동을 AI로 결정합니다"""
         try:
             # LangGraph를 사용한 판단 시도
-            print("LangGraph 기반 전투 결정 시작...")
+            print("### LangGraph 기반 전투 결정 시작")
             
             # 거리 계산 적용
             self.calculate_distances_from_target(battle_state)

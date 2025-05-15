@@ -1,10 +1,23 @@
 from typing import Dict, Any, List, Tuple, Optional
+import re
 from langchain_core.messages import SystemMessage
 from app.ai.combat.states import CombatState
 from app.ai.combat.utils import get_current_character, calculate_manhattan_distance, calculate_movable_positions
 from app.models.combat import CharacterAction
 from app.utils.loader import skills
 from app.ai.combat.nodes import debug_node
+
+
+def _extract_reason(strategy_text):
+    """전략 이유 추출"""
+    try:
+        match = re.search(r'\"이유\"\s*:\s*\"([^\"]+)\"', strategy_text)
+        if match:
+            return match.group(1).strip()
+    except:
+        pass
+        
+    return "전략 근거 확인 불가"
 
 
 def generate_action(state: CombatState) -> Dict[str, Any]:
@@ -14,8 +27,6 @@ def generate_action(state: CombatState) -> Dict[str, Any]:
     - 현재 리소스 고려 (AP, MOV)
     - 타겟과의 거리 및 스킬 사거리 고려
     """
-    # 디버깅: 입력 데이터 출력
-    debug_node("행동 생성 (시작)", input_data=state)
     
     battle_state = state["battle_state"]
     situation_analysis = state["situation_analysis"]
@@ -29,20 +40,24 @@ def generate_action(state: CombatState) -> Dict[str, Any]:
             "planned_actions": [],
             "messages": [SystemMessage(content="[시스템] 행동 생성 중 오류: 현재 캐릭터 정보를 찾을 수 없습니다.")]
         }
-        debug_node("행동 생성 (에러)", output_data=result)
+        debug_node("행동 생성 (에러)", input_data=state, output_data=result, error=True)
         return result
     
-    # 타겟 정보 및 스킬 타겟 확인
-    selected_targets = target_selection.get("selected_targets", [])
-    skill_targets = target_selection.get("skill_targets", {})
+    # 타겟 정보 확인
+    target_id = target_selection.get("target_id")
+    approach = target_selection.get("approach", "direct")
     
-    if not selected_targets:
+    if not target_id:
         result = {
             "planned_actions": [],
             "messages": [SystemMessage(content="[시스템] 행동 생성 중 오류: 선택된 타겟이 없습니다.")]
         }
-        debug_node("행동 생성 (에러)", output_data=result)
+        debug_node("행동 생성 (에러)", input_data=state, output_data=result, error=True)
         return result
+    
+    # 전략 이유 추출
+    strategy_text = strategy_decision.get("strategy_text", "")
+    strategy_reason = _extract_reason(strategy_text)
     
     # 이동 가능한 위치 계산
     movable_positions = calculate_movable_positions(battle_state)
@@ -73,11 +88,23 @@ def generate_action(state: CombatState) -> Dict[str, Any]:
             "planned_actions": [],
             "messages": [SystemMessage(content="[시스템] 행동 생성 중 오류: 사용 가능한 스킬이 없습니다.")]
         }
-        debug_node("행동 생성 (에러)", output_data=result)
+        debug_node("행동 생성 (에러)", input_data=state, output_data=result, error=True)
         return result
     
-    # 메인 타겟 정보
-    main_target = selected_targets[0]
+    # 타겟 위치 확인
+    target_position = None
+    for character in battle_state.characters:
+        if character.id == target_id:
+            target_position = character.position
+            break
+            
+    if not target_position:
+        result = {
+            "planned_actions": [],
+            "messages": [SystemMessage(content=f"[시스템] 행동 생성 중 오류: 타겟 ID {target_id}의 위치를 찾을 수 없습니다.")]
+        }
+        debug_node("행동 생성 (에러)", input_data=state, output_data=result, error=True)
+        return result
     
     # 행동 계획 (최대 3개의 행동 시도)
     for attempt in range(min(3, len(available_skills))):
@@ -92,20 +119,6 @@ def generate_action(state: CombatState) -> Dict[str, Any]:
         # 일단 첫 번째 스킬 선택 (추후 더 복잡한 스킬 선택 로직 적용 가능)
         skill_name, skill_ap, skill_range = usable_skills[0]
         available_skills.remove((skill_name, skill_ap, skill_range))
-        
-        # 타겟 ID 결정 (스킬별 최적 타겟 있으면 사용, 없으면 메인 타겟)
-        target_info = skill_targets.get(skill_name, {"id": main_target["id"]})
-        target_id = target_info.get("id", main_target["id"])
-        
-        # 타겟 위치 확인
-        target_position = None
-        for target in battle_state.characters:
-            if target.id == target_id:
-                target_position = target.position
-                break
-        
-        if not target_position:
-            continue  # 타겟 위치 정보가 없으면 다음 행동으로
         
         # 현재 위치에서 타겟까지의 거리
         distance_to_target = calculate_manhattan_distance(current_position, target_position)
@@ -142,10 +155,13 @@ def generate_action(state: CombatState) -> Dict[str, Any]:
         if skill_ap > remaining_ap:
             continue  # AP 부족하면 다음 행동으로
         
-        # 행동 생성
-        reason = f"{target_id}에게 {skill_name} 스킬 사용"
+        # 행동 설명 생성 (이동 여부에 따라 다름)
+        action_description = f"{target_id}에게 {skill_name} 스킬 사용"
         if current_position != optimal_position:
-            reason = f"{optimal_position}으로 이동 후 {target_id}에게 {skill_name} 스킬 사용"
+            action_description = f"{optimal_position}으로 이동 후 {target_id}에게 {skill_name} 스킬 사용"
+        
+        # 행동 생성 - 전략 이유와 행동 설명을 조합
+        reason = f"{action_description} - {strategy_reason}"
         
         action = CharacterAction(
             move_to=optimal_position,
@@ -176,8 +192,5 @@ def generate_action(state: CombatState) -> Dict[str, Any]:
         "planned_actions": planned_actions,
         "messages": [SystemMessage(content=summary)]
     }
-    
-    # 디버깅: 출력 데이터 출력
-    debug_node("행동 생성 (완료)", output_data=result)
     
     return result 

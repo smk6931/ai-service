@@ -17,12 +17,8 @@ def decide_strategy(state: CombatState) -> Dict[str, Any]:
     - 특성(traits)에 기반한 성격 반영 
     - 전투 규칙 고려
     """
-    # 디버깅: 입력 데이터 출력
-    debug_node("전략 결정 (시작)", input_data=state)
- 
     try:
         battle_state = state["battle_state"]
-        print("[battle_state]", battle_state)
         
         situation_analysis = state.get("situation_analysis", {})
         
@@ -43,7 +39,7 @@ def decide_strategy(state: CombatState) -> Dict[str, Any]:
                 "strategy_decision": {"error": "현재 캐릭터를 찾을 수 없습니다"},
                 "messages": [SystemMessage(content="[시스템] 전략 결정 중 오류: 현재 캐릭터 정보를 찾을 수 없습니다.")]
             }
-            debug_node("전략 결정 (에러)", output_data=result)
+            debug_node("전략 결정 (에러)", input_data=state, output_data=result, error=True)
             return result
         
         # 캐릭터의 특성(traits) 분석
@@ -93,18 +89,15 @@ def decide_strategy(state: CombatState) -> Dict[str, Any]:
 
         # LLM을 사용하여 전략 결정
         llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
-        print("[run llm]")
         
-        # 명시적 Message 객체 사용 
+        # 명시적 Message 객체 사용
         strategy_prompt = ChatPromptTemplate.from_messages([
             SystemMessage(content=system_content),
             HumanMessage(content=human_content)
         ])
 
         messages = strategy_prompt.format_messages()
-        print("[messages]", messages)
         response = llm.invoke(messages)
-        print("[response]", response)
         # 응답 처리
         strategy_decision = {
             "strategy_text": response.content,
@@ -120,8 +113,7 @@ def decide_strategy(state: CombatState) -> Dict[str, Any]:
             ]
         }
         
-        # 디버깅: 출력 데이터 출력
-        debug_node("전략 결정 (완료)", output_data=result)
+        # 디버깅: 일반적인 출력 제거
         return result
         
     except Exception as e:
@@ -142,6 +134,6 @@ def decide_strategy(state: CombatState) -> Dict[str, Any]:
             "messages": [SystemMessage(content=f"[시스템] 전략 결정 중 오류 발생: {str(e)}. 기본 전략을 사용합니다.")]
         }
         
-        # 디버깅: 출력 데이터 출력 (오류)
-        debug_node("전략 결정 (폴백)", output_data=result)
+        # 디버깅: 오류 발생 시에는 출력
+        debug_node("전략 결정 (폴백)", input_data=state, output_data=result, error=True)
         return result 
