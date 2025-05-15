@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from app.models.combat import BattleInitRequest, BattleState, BattleActionResponse
 from app.services.combat import CombatService
-from app.api.examples.combat_examples import (
+from app.api.examples.combat import (
     BATTLE_START_REQUEST_EXAMPLE,
     BATTLE_START_RESPONSE_EXAMPLE,
     BATTLE_ACTION_REQUEST_EXAMPLE,
