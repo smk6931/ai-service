@@ -1,20 +1,23 @@
-from typing import Dict, Any, List, Tuple
-from langchain_core.messages import SystemMessage, AIMessage
-import json
+from typing import Dict, Any, List, Optional
+from langchain_core.messages import SystemMessage
+import re
+
 from app.ai.combat.states import CombatState
-from app.ai.combat.utils import get_current_character, calculate_manhattan_distance
-from app.utils.loader import skills
+from app.ai.combat.utils import get_current_character
 from app.ai.combat.nodes import debug_node
 
 
 def select_target(state: CombatState) -> Dict[str, Any]:
-    """
-    타겟을 선택하는 노드
-    - 전략과 상황에 따른 최적의 타겟 선택
-    - 타겟 접근 방법 결정 (직접/간접)
-    """
-    # 입력 데이터 디버깅 출력 제거
+    """타겟을 선택하는 노드
     
+    전략 결정 결과와 상황 분석 결과를 바탕으로 최적의 타겟을 선택합니다.
+    
+    Args:
+        state: 현재 전투 상태
+        
+    Returns:
+        타겟 선택 결과가 포함된 상태 업데이트
+    """
     battle_state = state["battle_state"]
     strategy_decision = state.get("strategy_decision", {})
     situation_analysis = state.get("situation_analysis", {})
@@ -22,117 +25,167 @@ def select_target(state: CombatState) -> Dict[str, Any]:
     # 현재 캐릭터 정보 확인
     current = get_current_character(battle_state)
     if not current:
-        result = {
-            "target_selection": {"error": "현재 캐릭터를 찾을 수 없습니다"},
-            "messages": [SystemMessage(content="[시스템] 타겟 선택 중 오류: 현재 캐릭터 정보를 찾을 수 없습니다.")]
-        }
-        debug_node("타겟 선택 (에러)", input_data=state, output_data=result, error=True)
-        return result
+        return create_error_response("현재 캐릭터를 찾을 수 없습니다")
     
-    # 전략 결정이 없거나 오류가 있을 경우
+    # 전략 결정이 없거나 오류가 있을 경우 기본 타겟 선택
     if not strategy_decision or "error" in strategy_decision:
-        # 기본 전략 결정 사용
-        target_selection = _default_target_selection(battle_state, situation_analysis)
-        result = {
-            "target_selection": target_selection,
-            "messages": [SystemMessage(content="[시스템] 전략 부재로 기본 타겟 선택: " + target_selection["reason"])]
-        }
-        debug_node("타겟 선택 (기본)", input_data=state, output_data=result, error=True)
-        return result
+        return select_default_target(situation_analysis)
     
     # 전략 텍스트 분석
     strategy_text = strategy_decision.get("strategy_text", "")
     
-    # 선택된 타겟 ID 추출 시도
-    target_id = None
+    # 전략에서 타겟 ID 추출
+    target_id = extract_target_from_strategy(strategy_text)
     
-    # 전략에서 타겟 ID 추출 시도
-    if "우선순위_타겟" in strategy_text:
-        try:
-            import re
-            # "우선순위_타겟": "타겟_ID" 패턴 매칭
-            match = re.search(r'\"우선순위_타겟\"\s*:\s*\"([^\"]+)\"', strategy_text)
-            if match and match.group(1) != "없음":
-                target_id = match.group(1).strip()
-        except:
-            pass
-    
-    # 타겟 ID가 없으면 기본 타겟 선택 로직 사용
+    # 타겟 ID가 없으면 전략 유형에 따라 타겟 선택
     if not target_id:
-        target_characters = situation_analysis.get("target_characters", [])
-        if target_characters:
-            # 전략에 따른 타겟 선택 가중치 적용
-            if "공격적" in strategy_text:
-                # 체력이 낮은 적 우선
-                sorted_targets = sorted(target_characters, key=lambda x: x.get("hp", 999))
-            elif "방어적" in strategy_text:
-                # 가까운 적 우선
-                sorted_targets = sorted(target_characters, key=lambda x: x.get("distance", 999))
-            elif "지원형" in strategy_text:
-                # 아군 대상 (아직 미구현, 지금은 가장 가까운 대상)
-                sorted_targets = sorted(target_characters, key=lambda x: x.get("distance", 999))
-            else:
-                # 기본: 거리, 체력 모두 고려
-                sorted_targets = sorted(target_characters, 
-                                         key=lambda x: (x.get("distance", 999), x.get("hp", 999)))
-            
-            # 최우선 타겟 선택
-            if sorted_targets:
-                target_id = sorted_targets[0].get("id")
+        target_id = select_target_by_strategy(
+            strategy_text, 
+            situation_analysis.get("target_characters", [])
+        )
+    
+    # 타겟 접근 방식 결정
+    approach = determine_approach(situation_analysis, target_id)
+    
+    # 전략 유형 및 이유 추출
+    strategy_type = extract_strategy_type(strategy_text)
+    reason = extract_reason(strategy_text)
     
     # 결과 생성
     target_selection = {
         "target_id": target_id,
-        "approach": _determine_approach(situation_analysis, target_id),
-        "strategy_type": _extract_strategy_type(strategy_text),
-        "reason": f"전략적 판단: {_extract_reason(strategy_text)[:100]}..." if len(_extract_reason(strategy_text)) > 100 else _extract_reason(strategy_text)
+        "approach": approach,
+        "strategy_type": strategy_type,
+        "reason": reason[:100] if reason else "전략적 판단"
     }
     
     result = {
         "target_selection": target_selection,
         "messages": [
-            SystemMessage(content=f"[시스템] 타겟 선택: {target_id if target_id else '지정된 타겟 없음'} ({target_selection['approach']})"),
-            SystemMessage(content=f"[시스템] 접근 방식: {target_selection['approach']}")
+            SystemMessage(content=f"[시스템] 타겟 선택: {target_id if target_id else '지정된 타겟 없음'} ({approach})")
         ]
     }
     
-    # 디버깅 출력 제거
     return result
 
 
-def _default_target_selection(battle_state, situation_analysis):
-    """기본 타겟 선택 로직"""
-    targets = []
+def create_error_response(error_message: str) -> Dict[str, Any]:
+    """에러 응답을 생성합니다.
     
-    # 타겟 유형 결정
-    current = get_current_character(battle_state)
-    if current:
-        target_type = "player" if current.type == "monster" else "monster"
-        # 상황 분석에서 타겟 정보 추출
-        targets = situation_analysis.get("target_characters", [])
+    Args:
+        error_message: 에러 메시지
+        
+    Returns:
+        에러 응답 객체
+    """
+    return {
+        "target_selection": {"error": error_message},
+        "messages": [SystemMessage(content=f"[시스템] 타겟 선택 중 오류: {error_message}")]
+    }
+
+
+def select_default_target(situation_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """기본 타겟 선택 로직입니다.
+    
+    Args:
+        situation_analysis: 상황 분석 결과
+        
+    Returns:
+        기본 타겟 선택 결과
+    """
+    # 상황 분석에서 타겟 정보 추출
+    targets = situation_analysis.get("target_characters", [])
     
     target_id = None
     approach = "default"
     
     # 가장 가까운 타겟 선택
     if targets:
-        # 거리가 가장 가까운 타겟 선택
         sorted_targets = sorted(targets, key=lambda x: x.get("distance", 999))
         if sorted_targets:
             target_id = sorted_targets[0].get("id")
-            # 접근 방식 결정
-            approach = _determine_approach(situation_analysis, target_id)
+            approach = determine_approach(situation_analysis, target_id)
     
-    return {
+    target_selection = {
         "target_id": target_id,
         "approach": approach,
         "strategy_type": "balanced",
         "reason": "기본 타겟 선택: 가장 가까운 적 우선"
     }
+    
+    return {
+        "target_selection": target_selection,
+        "messages": [SystemMessage(content=f"[시스템] 전략 부재로 기본 타겟 선택: {target_selection['reason']}")]
+    }
 
 
-def _determine_approach(situation_analysis, target_id):
-    """타겟 접근 방식 결정"""
+def extract_target_from_strategy(strategy_text: str) -> Optional[str]:
+    """전략 텍스트에서 우선순위 타겟 ID를 추출합니다.
+    
+    Args:
+        strategy_text: 전략 텍스트
+        
+    Returns:
+        타겟 ID 또는 None
+    """
+    if "우선순위_타겟" not in strategy_text:
+        return None
+    
+    try:
+        # "우선순위_타겟": "타겟_ID" 패턴 매칭
+        match = re.search(r'\"우선순위_타겟\"\s*:\s*\"([^\"]+)\"', strategy_text)
+        if match and match.group(1) != "없음":
+            return match.group(1).strip()
+    except:
+        pass
+    
+    return None
+
+
+def select_target_by_strategy(strategy_text: str, target_characters: List[Dict[str, Any]]) -> Optional[str]:
+    """전략 유형에 따라 최적의 타겟을 선택합니다.
+    
+    Args:
+        strategy_text: 전략 텍스트
+        target_characters: 타겟 캐릭터 목록
+        
+    Returns:
+        선택된 타겟 ID 또는 None
+    """
+    if not target_characters:
+        return None
+    
+    if "공격적" in strategy_text:
+        # 체력이 낮은 적 우선
+        sorted_targets = sorted(target_characters, key=lambda x: x.get("hp", 999))
+    elif "방어적" in strategy_text:
+        # 가까운 적 우선
+        sorted_targets = sorted(target_characters, key=lambda x: x.get("distance", 999))
+    else:
+        # 기본: 거리, 체력 모두 고려
+        sorted_targets = sorted(target_characters, 
+                              key=lambda x: (x.get("distance", 999), x.get("hp", 999)))
+    
+    # 최우선 타겟 선택
+    if sorted_targets:
+        return sorted_targets[0].get("id")
+    
+    return None
+
+
+def determine_approach(situation_analysis: Dict[str, Any], target_id: Optional[str]) -> str:
+    """타겟 접근 방식을 결정합니다.
+    
+    Args:
+        situation_analysis: 상황 분석 결과
+        target_id: 타겟 ID
+        
+    Returns:
+        접근 방식 ("direct", "approach", "no_target")
+    """
+    if not target_id:
+        return "no_target"
+    
     # 공격 가능 범위 확인
     targets_in_range = situation_analysis.get("targets_in_range", {})
     
@@ -145,8 +198,15 @@ def _determine_approach(situation_analysis, target_id):
     return "approach"
 
 
-def _extract_strategy_type(strategy_text):
-    """전략 유형 추출"""
+def extract_strategy_type(strategy_text: str) -> str:
+    """전략 유형을 추출합니다.
+    
+    Args:
+        strategy_text: 전략 텍스트
+        
+    Returns:
+        전략 유형 ("aggressive", "defensive", "support", "mobile", "balanced")
+    """
     if "공격적" in strategy_text:
         return "aggressive"
     elif "방어적" in strategy_text:
@@ -158,10 +218,15 @@ def _extract_strategy_type(strategy_text):
     return "balanced"
 
 
-def _extract_reason(strategy_text):
-    """전략 이유 추출"""
-    import re
+def extract_reason(strategy_text: str) -> str:
+    """전략 이유를 추출합니다.
     
+    Args:
+        strategy_text: 전략 텍스트
+        
+    Returns:
+        전략 이유
+    """
     try:
         match = re.search(r'\"이유\"\s*:\s*\"([^\"]+)\"', strategy_text)
         if match:

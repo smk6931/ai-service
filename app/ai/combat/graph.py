@@ -13,66 +13,78 @@ from app.ai.combat.nodes import debug_node
 
 
 def create_response(state: CombatState) -> Dict[str, Any]:
-    """
-    최종 응답 생성 노드
-    - 모든 단계가 완료된 후 최종 응답 형식 생성
-    """
-    debug_node("응답 생성 (시작)", input_data=state)
+    """최종 응답을 생성합니다.
     
+    Args:
+        state: 전투 상태
+        
+    Returns:
+        행동 응답 결과
+    """
     battle_state = state["battle_state"]
+    strategy_decision = state.get("strategy_decision", {}),
     final_actions = state.get("final_actions", [])
     
-    # BattleActionResponse 생성
+    # 응답 객체 생성
     response = BattleActionResponse(
         current_character_id=battle_state.current_character_id,
+        strategy_decision=strategy_decision,
         actions=final_actions
     )
     
+    # 결과 반환
     result = {
         "response": response,
         "messages": [SystemMessage(content=f"[시스템] 전투 결정 완료: {len(final_actions)}개의 행동")]
     }
     
-    debug_node("응답 생성 (완료)", input_data=state, output_data=result)
-    
     return result
 
 
 def create_combat_graph() -> StateGraph:
-    """
-    전투 결정을 위한 LangGraph 생성
-    - 전체 패턴: 상황분석 → 전략결정 → 타겟선택 → 행동생성 → 리소스계산 → 응답생성
-    """
-    print("\n" + "=" * 50)
-    print("전투 그래프 생성 시작")
-    print("=" * 50)
+    """전투 결정을 위한 LangGraph를 생성합니다.
     
-    # 상태 그래프 생성
+    Returns:
+        컴파일된 LangGraph 상태 그래프
+    """
+    print("전투 그래프 생성 시작")
+    
+    # 노드 정의 - 각 단계별 처리 함수 매핑
+    nodes = {
+        "analyze_situation": analyze_situation,  # 1. 상황 분석
+        "decide_strategy": decide_strategy,      # 2. 전략 결정
+        "select_target": select_target,          # 3. 타겟 선택
+        "generate_action": generate_action,      # 4. 행동 생성
+        "calculate_resources": calculate_resources,  # 5. 리소스 계산
+        "create_response": create_response       # 6. 응답 생성
+    }
+    
+    # 엣지 정의 - 노드 연결 순서
+    edges = [
+        (START, "analyze_situation"),
+        ("analyze_situation", "decide_strategy"),
+        ("decide_strategy", "select_target"),
+        ("select_target", "generate_action"),
+        ("generate_action", "calculate_resources"),
+        ("calculate_resources", "create_response"),
+        ("create_response", END)
+    ]
+    
+    # 그래프 생성
     combat_graph = StateGraph(CombatState)
     
     # 노드 추가
-    combat_graph.add_node("analyze_situation", analyze_situation)
-    combat_graph.add_node("decide_strategy", decide_strategy)
-    combat_graph.add_node("select_target", select_target)
-    combat_graph.add_node("generate_action", generate_action)
-    combat_graph.add_node("calculate_resources", calculate_resources)
-    combat_graph.add_node("create_response", create_response)
+    for name, func in nodes.items():
+        combat_graph.add_node(name, func)
     
-    # 노드 간 연결
-    combat_graph.add_edge(START, "analyze_situation")
-    combat_graph.add_edge("analyze_situation", "decide_strategy")
-    combat_graph.add_edge("decide_strategy", "select_target")
-    combat_graph.add_edge("select_target", "generate_action")
-    combat_graph.add_edge("generate_action", "calculate_resources")
-    combat_graph.add_edge("calculate_resources", "create_response")
-    combat_graph.add_edge("create_response", END)
+    # 엣지 추가
+    for start, end in edges:
+        combat_graph.add_edge(start, end)
     
     # 그래프 컴파일
     compiled_graph = combat_graph.compile()
     
-    print("\n" + "=" * 50)
     print("전투 그래프 생성 완료")
-    print("그래프 순서: 상황분석(situation) → 전략결정(strategy) → 타겟선택(target) → 행동생성(action) → 리소스계산(resource) → 응답생성(response)")
-    print("=" * 50 + "\n")
+    print("그래프 순서: 상황분석 → 전략결정 → 타겟선택 → 행동생성 → 리소스계산 → 응답생성")
     
     return compiled_graph 

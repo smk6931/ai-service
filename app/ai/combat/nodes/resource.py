@@ -1,7 +1,7 @@
-from typing import Dict, Any, List
-from langchain_core.messages import SystemMessage, AIMessage
+from typing import Dict, Any, List, Tuple
+from langchain_core.messages import SystemMessage
 from app.ai.combat.states import CombatState
-from app.ai.combat.utils import get_current_character, calculate_manhattan_distance
+from app.ai.combat.utils import get_current_character
 from app.models.combat import CharacterAction
 from app.utils.combat import calculate_action_costs
 from app.utils.loader import skills
@@ -9,37 +9,35 @@ from app.ai.combat.nodes import debug_node
 
 
 def calculate_resources(state: CombatState) -> Dict[str, Any]:
-    """
-    리소스 계산 노드
-    - 행동에 필요한 AP와 MOV 계산
-    - 리소스 부족 시 행동 조정
-    - 최종 행동 계획 결정
-    """
-    # 디버깅 출력 제거
+    """리소스 계산 노드
     
+    행동에 필요한 AP와 MOV를 계산하고 리소스 부족 시 행동을 조정합니다.
+    
+    Args:
+        state: 현재 전투 상태
+        
+    Returns:
+        최종 행동 계획이 포함된 상태 업데이트
+    """
     battle_state = state["battle_state"]
     planned_actions = state.get("planned_actions", [])
     
     # 현재 캐릭터 정보 확인
     current = get_current_character(battle_state)
     if not current:
-        result = {
+        return {
             "final_actions": [],
             "resource_calculation": {"error": "현재 캐릭터를 찾을 수 없습니다"},
             "messages": [SystemMessage(content="[시스템] 리소스 계산 중 오류: 현재 캐릭터 정보를 찾을 수 없습니다.")]
         }
-        debug_node("리소스 계산 (에러)", input_data=state, output_data=result, error=True)
-        return result
     
     # 계획된 행동이 없는 경우
     if not planned_actions:
-        result = {
+        return {
             "final_actions": [],
             "resource_calculation": {"warning": "계획된 행동이 없습니다"},
             "messages": [SystemMessage(content="[시스템] 리소스 계산 중 경고: 계획된 행동이 없습니다.")]
         }
-        debug_node("리소스 계산 (경고)", input_data=state, output_data=result, error=True)
-        return result
     
     # 초기 리소스
     current_ap = current.ap
@@ -56,7 +54,7 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
         skill_data = skills.get(action.skill, {})
         skill_ap_cost = skill_data.get('ap', 0)
         
-        # 이동 및 행동 비용 계산 (실제 계산)
+        # 이동 및 행동 비용 계산
         costs = calculate_action_costs(
             current_position=current_position,
             target_position=action.move_to,
@@ -76,8 +74,7 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
             "ap_cost": skill_ap_cost,
             "remaining_ap": costs['remaining_ap'],
             "remaining_mov": costs['remaining_mov'],
-            "can_perform": costs['can_perform'],
-            "reason": None
+            "can_perform": costs['can_perform']
         }
         
         # 행동 가능 여부 확인
@@ -92,17 +89,6 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
             
             # 이 행동과 이후 행동 제외
             resource_calculations.append(calculation)
-            
-            # 디버깅: 리소스 부족 행동 로그
-            debug_node(f"리소스 계산 - 행동 {i+1} 불가능", input_data={
-                "current_state": state,
-                "action": action,
-                "calculation": calculation
-            }, output_data={
-                "action": f"{action.skill} -> {action.target_character_id}",
-                "reason": calculation["reason"]
-            }, error=True)
-            
             break
         
         # 행동 업데이트 - 계산된 리소스 값으로 조정
@@ -125,19 +111,7 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
         current_position = action.move_to
     
     # 결과 요약 메시지 생성
-    if final_actions:
-        actions_summary = [f"- {i+1}. {a.reason} (남은 AP: {a.remaining_ap}, 남은 MOV: {a.remaining_mov})" 
-                         for i, a in enumerate(final_actions)]
-        
-        # 제외된 행동이 있는지 확인
-        if len(final_actions) < len(planned_actions):
-            excluded_count = len(planned_actions) - len(final_actions)
-            excluded_reason = resource_calculations[len(final_actions)]["reason"] if resource_calculations else "리소스 부족"
-            actions_summary.append(f"- {len(final_actions) + 1}. (제외됨) {excluded_reason}")
-        
-        summary = f"[시스템] 리소스 계산 완료: {len(final_actions)}개의 행동 실행 가능\n" + "\n".join(actions_summary)
-    else:
-        summary = "[시스템] 리소스 계산 결과: 실행 가능한 행동이 없습니다."
+    summary = create_summary_message(final_actions, planned_actions, resource_calculations)
     
     result = {
         "resource_calculation": {
@@ -149,8 +123,39 @@ def calculate_resources(state: CombatState) -> Dict[str, Any]:
         "messages": [SystemMessage(content=summary)]
     }
     
-    # 디버깅 출력 제거
-    return result 
+    return result
+
+
+def create_summary_message(
+    final_actions: List[CharacterAction], 
+    planned_actions: List[CharacterAction],
+    resource_calculations: List[Dict[str, Any]]
+) -> str:
+    """리소스 계산 결과 요약 메시지를 생성합니다.
+    
+    Args:
+        final_actions: 최종 행동 목록
+        planned_actions: 계획된 행동 목록
+        resource_calculations: 리소스 계산 결과
+        
+    Returns:
+        요약 메시지
+    """
+    if final_actions:
+        actions_summary = [
+            f"- {i+1}. {a.reason} (남은 AP: {a.remaining_ap}, 남은 MOV: {a.remaining_mov})" 
+            for i, a in enumerate(final_actions)
+        ]
+        
+        # 제외된 행동이 있는지 확인
+        if len(final_actions) < len(planned_actions):
+            excluded_count = len(planned_actions) - len(final_actions)
+            excluded_reason = resource_calculations[len(final_actions)].get("reason", "리소스 부족")
+            actions_summary.append(f"- {len(final_actions) + 1}. (제외됨) {excluded_reason}")
+        
+        return f"[시스템] 리소스 계산 완료: {len(final_actions)}개의 행동 실행 가능\n" + "\n".join(actions_summary)
+    else:
+        return "[시스템] 리소스 계산 결과: 실행 가능한 행동이 없습니다."
 
 
 def _adjust_move_distance(start_pos, target_pos, available_mov):
