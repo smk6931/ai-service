@@ -35,7 +35,7 @@ class Settings(BaseModel):
 
 settings = Settings(
     OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
-    , OPENAI_MODEL=os.getenv("OPENAI_MODEL")
+    , OPENAI_MODEL=os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     , DATABASE_HOST=os.getenv("DATABASE_HOST")
     , DATABASE_NAME=os.getenv("DATABASE_NAME")
     , DATABASE_USER=os.getenv("DATABASE_USER")

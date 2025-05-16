@@ -42,7 +42,9 @@ class CharacterAction(BaseModel):
 
 class BattleActionResponse(BaseModel):
     current_character_id: str = Field(description="현재 행동 대상 캐릭터의 ID")
-    actions: List[CharacterAction] = Field(description="해당 턴에 사용하는 캐릭터의 행동 목록 (최대한 많은 행동을 수행하는 것이 중요)")
+    # actions: List[CharacterAction] = Field(description="해당 턴에 사용하는 캐릭터의 행동 목록 (최대한 많은 행동을 수행하는 것이 중요)")
+    action: CharacterAction = Field(description="해당 턴에 사용하는 캐릭터의 행동")
+    
 
 # AI 판단 용 모델
 class CharacterForAI(CharacterConfig, CharacterState):
@@ -55,4 +57,11 @@ class BattleStateForAI(BaseModel):
     current_character_id: str
     terrain: str
     weather: str
+
+# LLM 전략 결정 모델
+class StrategyDecision(BaseModel):
+    strategy_type: str = Field(description="전략 유형 (공격적/방어적/지원형/기동형)")
+    priority_target: str = Field(description="우선순위 타겟의 ID ('없음'인 경우도 가능)")
+    action_plan: str = Field(description="구체적인 행동 계획 설명")
+    reason: str = Field(description="이 전략을 선택한 이유")
     
