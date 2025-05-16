@@ -2,7 +2,7 @@ from typing import Dict, Any
 from langchain_core.messages import SystemMessage
 from langgraph.graph import StateGraph, END, START
 
-from app.models.combat import BattleStateForAI, BattleActionResponse
+from app.models.combat import BattleStateForAI, BattleActionResponse, CharacterAction
 from app.ai.combat.states import CombatState
 from app.ai.combat.nodes.situation import analyze_situation
 from app.ai.combat.nodes.strategy import decide_strategy
@@ -10,6 +10,7 @@ from app.ai.combat.nodes.target import select_target
 from app.ai.combat.nodes.action import generate_action
 from app.ai.combat.nodes.resource import calculate_resources
 from app.ai.combat.nodes import debug_node
+from app.ai.combat.utils import get_current_character
 
 
 def create_response(state: CombatState) -> Dict[str, Any]:
@@ -22,20 +23,34 @@ def create_response(state: CombatState) -> Dict[str, Any]:
         행동 응답 결과
     """
     battle_state = state["battle_state"]
-    strategy_decision = state.get("strategy_decision", {}),
+    strategy_decision = state.get("strategy_decision", {})
     final_actions = state.get("final_actions", [])
     
-    # 응답 객체 생성
+    # 응답 객체 생성 - 행동이 있으면 첫 번째 행동만 사용, 없으면 기본값 생성
+    if final_actions:
+        action = final_actions[0]
+        action.reason = strategy_decision.get("reason", "")
+    else:
+        # 기본 행동 생성
+        current = get_current_character(battle_state)
+        action = CharacterAction(
+            move_to=current.position if current else (0, 0),
+            skill="대기",
+            target_character_id=current.id if current else "",
+            reason="행동 없음",
+            remaining_ap=0,
+            remaining_mov=0
+        )
+    
     response = BattleActionResponse(
         current_character_id=battle_state.current_character_id,
-        strategy_decision=strategy_decision,
-        actions=final_actions
+        action=action
     )
     
     # 결과 반환
     result = {
         "response": response,
-        "messages": [SystemMessage(content=f"[시스템] 전투 결정 완료: {len(final_actions)}개의 행동")]
+        "messages": [SystemMessage(content=f"[시스템] 전투 결정 완료: 행동 - {action.skill}")]
     }
     
     return result

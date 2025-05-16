@@ -42,7 +42,9 @@ class CharacterAction(BaseModel):
 
 class BattleActionResponse(BaseModel):
     current_character_id: str = Field(description="현재 행동 대상 캐릭터의 ID")
-    actions: List[CharacterAction] = Field(description="해당 턴에 사용하는 캐릭터의 행동 목록 (최대한 많은 행동을 수행하는 것이 중요)")
+    # actions: List[CharacterAction] = Field(description="해당 턴에 사용하는 캐릭터의 행동 목록 (최대한 많은 행동을 수행하는 것이 중요)")
+    action: CharacterAction = Field(description="해당 턴에 사용하는 캐릭터의 행동")
+    
 
 # AI 판단 용 모델
 class CharacterForAI(CharacterConfig, CharacterState):

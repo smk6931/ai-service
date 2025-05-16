@@ -83,16 +83,15 @@ BATTLE_ACTION_REQUEST_EXAMPLE = {
 # /battle/action 응답 예시
 BATTLE_ACTION_RESPONSE_EXAMPLE = {
   "current_character_id": "monster1",
-  "actions": [
-    {
+  "action":
+  {
       "move_to": [1, 11],
       "skill": "타격",
       "target_character_id": "player1",
-      "reason": "player1에게 공격하기 위해 이동 후 타격 스킬 사용",
+      "reason": "충동적인 특성으로 인해 가까운 적인 Player1를 공격하는 것이 최적의 선택이며, 몸통 박치기는 근접 스킬로 유효한 공격입니다.",
       "remaining_ap": 4,
       "remaining_mov": 0
-    }
-  ]
+  }
 }
 
 # API 문서용 설명 텍스트
