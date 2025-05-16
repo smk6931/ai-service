@@ -24,12 +24,14 @@ def create_response(state: CombatState) -> Dict[str, Any]:
     """
     battle_state = state["battle_state"]
     strategy_decision = state.get("strategy_decision", {})
+    # print(f"strategy_decision: {strategy_decision}")
     final_actions = state.get("final_actions", [])
+    # print(f"final_actions: {final_actions}")
     
     # 응답 객체 생성 - 행동이 있으면 첫 번째 행동만 사용, 없으면 기본값 생성
     if final_actions:
         action = final_actions[0]
-        action.reason = strategy_decision.get("reason", "")
+        action.reason = strategy_decision.get("strategy_dict", {}).get("reason", "")
     else:
         # 기본 행동 생성
         current = get_current_character(battle_state)
