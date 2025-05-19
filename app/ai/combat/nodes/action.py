@@ -123,15 +123,12 @@ def generate_action(state: CombatState) -> Dict[str, Any]:
             if optimal_position == current_position and distance_to_target > skill_range:
                 continue
         
-        # 행동 생성 이유 간단하게 작성
-        reason = generate_simple_reason(skill_name, target_character, move_required)
         
         # 행동 객체 생성
         action = CharacterAction(
             move_to=optimal_position,
             skill=skill_name,
             target_character_id=target_id,
-            reason=reason
         )
         
         # 행동 리스트에 추가
@@ -149,22 +146,6 @@ def generate_action(state: CombatState) -> Dict[str, Any]:
         "messages": [SystemMessage(content=summary)]
     }
 
-
-def generate_simple_reason(skill_name: str, target_character: Any, move_required: bool) -> str:
-    """간단한 행동 이유를 생성합니다.
-    
-    Args:
-        skill_name: 사용할 스킬 이름
-        target_character: 타겟 캐릭터
-        move_required: 이동이 필요한지 여부
-        
-    Returns:
-        행동 이유 설명
-    """
-    if move_required:
-        return f"{target_character.name}에게 접근하여 {skill_name} 스킬을 사용하기 위함입니다"
-    else:
-        return f"{target_character.name}에게 {skill_name} 스킬을 사용하기 위함입니다"
 
 
 def generate_action_summary(planned_actions: List[CharacterAction]) -> str:
