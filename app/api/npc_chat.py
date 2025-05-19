@@ -8,10 +8,10 @@ service = NPCChatService()
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    text = service.chat(request.question)
+    text = service.chat(request.question, request.personality)
     return ChatResponse(response=text)
 
 @router.post("/chat/stream")
 def chat_stream(request: ChatRequest):
-    generator = service.chat_stream(request.question)
+    generator = service.chat_stream(request.question, request.personality)
     return StreamingResponse(generator, media_type="text/event-stream")
