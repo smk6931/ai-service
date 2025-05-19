@@ -79,7 +79,7 @@ def decide_strategy(state: LangGraphBattleState) -> LangGraphBattleState:
     4. 지원 우선 (아군 지원에 집중)
     5. 도망 우선 (안전한 위치로 후퇴)
     
-    전략 결정 (형식: "전략: <전략명>, 이유: <이유>"):
+    전략 결정 (형식: "<전략명>, <이유>"):
     """
     
     # LLM 호출 로깅
@@ -92,7 +92,7 @@ def decide_strategy(state: LangGraphBattleState) -> LangGraphBattleState:
         # print(f"LLM 응답 [전략 결정] - {strategy_text[:100]}...")
     except Exception as e:
         print(f"LLM 호출 실패: {str(e)}")
-        strategy_text = "전략: 공격 우선, 이유: 기본값 (LLM 오류)"
+        strategy_text = "공격 우선 (LLM 오류)"
     
     # 전략 저장
     state.strategy = strategy_text
@@ -212,20 +212,80 @@ def generate_dialogue(state: LangGraphBattleState) -> LangGraphBattleState:
     current_character = next((c for c in state.characters if c.id == state.current_character_id), None)
     target_character = next((c for c in state.characters if c.id == state.target_character_id), None)
     
-    # 대사 생성 프롬프트
-    prompt = f"""
-    당신은 '{current_character.name}'이라는 캐릭터입니다.
-    캐릭터 특성: {', '.join(current_character.traits)}
+    # few-shot 예제 설정
+    few_shot_examples = [
+        {
+            'name': '골렘',
+            'traits': '냉정함, 신중함',
+            'strategy': '전투 태세를 유지하며 침착하게 대응하는 것이 적합하며, 냉정하고 신중한 성격으로 인해 무리하지 않고 질서를 유지하려는 판단을 내립니다.',
+            'skill': '타격',
+            'dialogue': '위반 감지. 대응 절차 개시.'
+        },
+        {
+            'name': '골렘',
+            'traits': '강인함',
+            'strategy': '강인한 성격으로 인해 어떠한 손상에도 흔들리지 않고 그대로 버티는 것이 최선이라고 판단됩니다.',
+            'skill': '방어 태세',
+            'dialogue': '충격 허용 범위 내. 계속 진행.'
+        },
+        {
+            'name': '리자드맨',
+            'traits': '충동적',
+            'strategy': '적에게 망설임 없이 공격을 감행하는 것이 효과적이며, 충동적인 성격 때문에 즉각적이고 강력한 공격으로 적을 빠르게 제압하는 것이 적합하다고 판단됩니다.',
+            'skill': '날카로운 발톱',
+            'dialogue': '피… 더! 갈라, 찢어…!'
+        },
+        {
+            'name': '리자드맨',
+            'traits': '잔인함, 충동적',
+            'strategy': '적을 압도하는 것이 최우선이며, 잔인하고 충동적인 성격으로 적을 빠르게 제압하는 것이 가장 본능적이며 효과적이라고 판단됩니다.',
+            'skill': '물기',
+            'dialogue': '하악! 물어! 지금이야!'
+        }
+    ]
     
-    현재 상황:
-    - {state.strategy}
-    - 스킬 '{state.action_plan.skill}'을(를) 사용하여 '{target_character.name if target_character else "대상 없음"}'을(를) 공격/지원합니다.
+    # 예제 프롬프트 템플릿 설정
+    example_prompt = PromptTemplate(
+        input_variables=["name", "traits", "strategy", "skill", "dialogue"],
+        template="""
+캐릭터: {name}
+특성: {traits}
+전략: {strategy}
+스킬: {skill}
+대사: {dialogue}
+"""
+    )
     
-    이 상황에서 판타지 RPG 세계관의 {current_character.name}의 말투로 간결한 대사를 한 문장으로 생성하세요:
-    """
+    # FewShotPromptTemplate 설정
+    few_shot_prompt = FewShotPromptTemplate(
+        examples=few_shot_examples,
+        example_prompt=example_prompt,
+        prefix="""당신은 판타지 게임 세계관의 캐릭터 대사를 생성하는 AI입니다.
+주어진 캐릭터 정보와 상황에 적합한 한 줄의 대사를 생성해 주세요.
+""",
+        suffix="""
+아래 정보를 바탕으로 판타지 RPG 세계관의 '{character_name}'의 성격과 상황에 어울리는 짧은 대사를 한 문장으로 작성하세요:
+캐릭터: {character_name}
+특성: {character_traits}
+전략: {strategy}
+스킬: {skill_name}
+대사:
+""",
+        input_variables=["character_name", "character_traits", "strategy", "skill_name", "target_name"]
+    )
     
-    # # LLM 호출 로깅
-    # print(f"LLM 호출 [대사 생성] - 캐릭터: {current_character.name}, 스킬: {state.action_plan.skill}")
+    # 최종 프롬프트 구성
+    prompt = few_shot_prompt.format(
+        character_name=current_character.name,
+        character_traits=', '.join(current_character.traits),
+        strategy=state.strategy,
+        skill_name=state.action_plan.skill if state.action_plan and state.action_plan.skill else "대기",
+        target_name=target_character.name if target_character else "없음"
+    )
+    print("[대사 생성 노드] 프롬프트\n", prompt)
+        
+    # LLM 호출 로깅
+    print(f"LLM 호출 [대사 생성] - 캐릭터: {current_character.name}, 스킬: {state.action_plan.skill if state.action_plan else '없음'}")
     
     # LLM에 프롬프트 전송
     try:
