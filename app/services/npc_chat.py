@@ -7,13 +7,13 @@ class NPCChatService:
     def __init__(self):
         self.ai = NPCChatAI()
 
-    def chat(self, user_input: str) -> str:
+    def chat(self, user_input: str, personality: str) -> str:
         retriever = self.get_retriever()
-        return self.ai.chat(user_input, retriever)
+        return self.ai.chat(user_input, retriever, personality)
 
-    def chat_stream(self, user_input: str):
+    def chat_stream(self, user_input: str, personality: str):
         retriever = self.get_retriever()
-        return self.ai.chat_stream(user_input, retriever)
+        return self.ai.chat_stream(user_input, retriever, personality)
 
     @lru_cache(maxsize=1)
     def get_embedding_model(self):
