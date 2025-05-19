@@ -34,8 +34,8 @@ class BattleState(BaseModel):
 # 전투 판단 응답용 (LLM → 행동 판단)
 class CharacterAction(BaseModel):
     move_to: Tuple[int, int] = Field(description="이동 할 좌표(이동이 하지 않는 경우 현재 좌표)")
-    skill: str = Field(description="사용할 스킬의 이름")
-    target_character_id: str = Field(description="스킬을 사용할 대상의 ID (이동 후 스킬의 사거리 내에 있어야 함)")
+    skill: Optional[str] = Field(default=None, description="사용할 스킬의 이름")
+    target_character_id: Optional[str] = Field(default=None, description="스킬을 사용할 대상의 ID (이동 후 스킬의 사거리 내에 있어야 함)")
     reason: Optional[str] = Field(default=None, description="행동 선택 이유")
     remaining_ap: int = Field(default=None, description="남은 AP")
     remaining_mov: int = Field(default=None, description="남은 MOV")

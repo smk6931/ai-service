@@ -13,7 +13,7 @@ from app.ai.combat.nodes import (
 def should_skip_dialogue(state: LangGraphBattleState) -> str:
     """대사 생성 여부 결정 함수"""
     # 대기 상태인 경우 대사 생성 스킵
-    if (state.action_plan and state.action_plan.skill == "대기" and 
+    if (state.action_plan and state.action_plan.skill is None and 
         state.action_plan.target_character_id == state.current_character_id):
         return "skip_dialogue"
     return "generate_dialogue"

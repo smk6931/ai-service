@@ -159,7 +159,7 @@ class CombatAI:
         # 기본 대기 행동
         action = CharacterAction(
             move_to=current_character.position,  # 제자리 유지
-            skill="대기",                        # 기본 대기 스킬
+            skill=None,                        # 기본 대기 스킬
             target_character_id=current_character_id,  # 자기 자신이 타겟
             reason="AI 판단 실패로 인한 기본 행동",
             remaining_ap=current_character.ap,   # AP 변화 없음
