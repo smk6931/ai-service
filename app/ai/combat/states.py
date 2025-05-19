@@ -1,36 +1,44 @@
-from typing import Annotated, Dict, List, Optional, Any
-from typing_extensions import TypedDict
-from langgraph.graph.message import add_messages
-from langchain_core.messages import AnyMessage
+from typing import List, Optional, Tuple, Literal, Dict
+from pydantic import BaseModel
 
-from app.models.combat import BattleStateForAI, BattleActionResponse, CharacterAction
+class Character(BaseModel):
+    id: str
+    name: str
+    type: Literal["player", "monster"]
+    traits: List[str]
+    skills: List[str]
+    position: Tuple[int, int]
+    hp: int
+    ap: int
+    mov: int
+    status_effects: List[str]
 
+class ActionPlan(BaseModel):
+    move_to: Optional[Tuple[int, int]]
+    skill: Optional[str]
+    target_character_id: Optional[str]
+    reason: Optional[str]
+    remaining_ap: Optional[int]
+    remaining_mov: Optional[int]
+    dialogue: Optional[str] = None
 
-class CombatState(TypedDict):
-    """전투 그래프의 상태를 정의합니다"""
-    # 원본 전투 상태 데이터
-    battle_state: BattleStateForAI
+class LangGraphBattleState(BaseModel):
+    cycle: int
+    turn: int
+    terrain: str
+    weather: str
+    current_character_id: str
+    characters: List[Character]
+
+    resource_info: Optional[Dict[str, int]] = None
+    personality_weights: Optional[Dict[str, float]] = None
+
+    battle_log: List[str] = []
+    battle_summary: Optional[str] = None
+
+    strategy: Optional[str] = None
+    target_character_id: Optional[str] = None
+    action_plan: Optional[ActionPlan] = None
+    dialogue: Optional[str] = None
+    trace: Optional[List[str]] = None
     
-    # 현재 분석된 상황
-    situation_analysis: Dict[str, Any]
-    
-    # 전략 결정 결과
-    strategy_decision: Dict[str, Any]
-    
-    # 타겟 선택 결과
-    target_selection: Dict[str, Any]
-    
-    # 행동 계획
-    planned_actions: List[CharacterAction]
-    
-    # 리소스 계산 결과
-    resource_calculation: Dict[str, Any]
-    
-    # 최종 행동 결정
-    final_actions: List[CharacterAction]
-    
-    # 판단 과정과 결과에 대한 설명 메시지
-    messages: Annotated[List[AnyMessage], add_messages]
-    
-    # 최종 응답
-    response: Optional[BattleActionResponse] 
