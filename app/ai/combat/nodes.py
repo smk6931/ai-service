@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
+from langchain.prompts import FewShotPromptTemplate
 
 from app.ai.combat.states import LangGraphBattleState, Character, ActionPlan
 from app.utils.combat import calculate_manhattan_distance

@@ -37,6 +37,7 @@ class CharacterAction(BaseModel):
     skill: Optional[str] = Field(default=None, description="사용할 스킬의 이름")
     target_character_id: Optional[str] = Field(default=None, description="스킬을 사용할 대상의 ID (이동 후 스킬의 사거리 내에 있어야 함)")
     reason: Optional[str] = Field(default=None, description="행동 선택 이유")
+    dialogue: Optional[str] = Field(default=None, description="행동을 하는 캐릭터의 대사")
     remaining_ap: int = Field(default=None, description="남은 AP")
     remaining_mov: int = Field(default=None, description="남은 MOV")
 

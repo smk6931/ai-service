@@ -143,6 +143,7 @@ class CombatAI:
                 skill=plan["skill"] if isinstance(plan, dict) else plan.skill,
                 target_character_id=plan["target_character_id"] if isinstance(plan, dict) else plan.target_character_id,
                 reason=plan["reason"] if isinstance(plan, dict) else (plan.reason or ""),
+                dialogue=plan["dialogue"] if isinstance(plan, dict) else (plan.dialogue or ""),
                 remaining_ap=plan["remaining_ap"] if isinstance(plan, dict) else (plan.remaining_ap or 0),
                 remaining_mov=plan["remaining_mov"] if isinstance(plan, dict) else (plan.remaining_mov or 0)
             )
