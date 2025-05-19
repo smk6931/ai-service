@@ -2,9 +2,13 @@ from typing import Dict, List, Tuple, Optional
 from langchain_openai import ChatOpenAI
 from app.ai.combat.states import LangGraphBattleState, Character, ActionPlan
 from app.utils.combat import calculate_manhattan_distance
+from dotenv import load_dotenv
+# 환경 변수 로드
+load_dotenv()
 
-# LLM 인스턴스 생성 - 실제 구현 시 적절한 모델과 API 키 설정 필요
-llm = ChatOpenAI(temperature=0.7)
+# LLM 인스턴스 생성
+llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.5)
+
 
 def analyze_situation(state: LangGraphBattleState) -> LangGraphBattleState:
     """
@@ -69,11 +73,14 @@ def decide_strategy(state: LangGraphBattleState) -> LangGraphBattleState:
     전략 결정 (형식: "전략: <전략명>, 이유: <이유>"):
     """
     
+    # LLM 호출 로깅
+    print(f"LLM 호출 [전략 결정] - 캐릭터: {current_character.name}, 환경: {state.terrain}/{state.weather}")
+    
     # LLM에 프롬프트 전송 (실제 구현 시 비동기 호출로 변경 필요)
-    # 예시 응답: "전략: 공격 우선, 이유: HP가 충분하고 적이 가까이 있어 공격이 효과적"
     try:
         response = llm.invoke(prompt).content
         strategy_text = response.strip()
+        print(f"LLM 응답 [전략 결정] - {strategy_text[:100]}...")
     except Exception as e:
         print(f"LLM 호출 실패: {str(e)}")
         strategy_text = "전략: 공격 우선, 이유: 기본값 (LLM 오류)"
@@ -135,9 +142,13 @@ def plan_action(state: LangGraphBattleState) -> LangGraphBattleState:
     }}
     """
     
+    # LLM 호출 로깅
+    print(f"LLM 호출 [행동 계획] - 캐릭터: {current_character.name}, 전략: {state.strategy[:30]}...")
+    
     # LLM에 프롬프트 전송 (예시 - 실제로는 응답 파싱 필요)
     try:
         response = llm.invoke(prompt).content
+        print(f"LLM 응답 [행동 계획] - {response[:100]}...")
         
         # 실제 구현에서는 응답을 파싱하여 ActionPlan 객체 생성
         # 여기서는 간단한 예시만 제공
@@ -206,10 +217,14 @@ def generate_dialogue(state: LangGraphBattleState) -> LangGraphBattleState:
     이 상황에서 캐릭터가 말할 수 있는 간결한 대사를 한 문장으로 생성하세요:
     """
     
+    # LLM 호출 로깅
+    print(f"LLM 호출 [대사 생성] - 캐릭터: {current_character.name}, 스킬: {state.action_plan.skill}")
+    
     # LLM에 프롬프트 전송
     try:
         response = llm.invoke(prompt).content
         dialogue = response.strip().strip('"\'')
+        print(f"LLM 응답 [대사 생성] - '{dialogue}'")
     except Exception as e:
         print(f"LLM 호출 실패: {str(e)}")
         # 폴백: 기본 대사

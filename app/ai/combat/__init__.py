@@ -149,98 +149,24 @@ class CombatAI:
         )
         
     def _fallback_decision(self, state: BattleState) -> BattleActionResponse:
-        """AI 판단 실패시 사용할 기본 판단 로직"""
+        """AI 판단 실패시 사용할 간단한 기본 판단 로직"""
         current_character_id = state.current_character_id
         current_character = next((c for c in state.characters if c.id == current_character_id), None)
         
         if not current_character:
             raise ValueError(f"캐릭터 ID '{current_character_id}'를 찾을 수 없습니다.")
         
-        # 필요한 정보 추출
-        current_config = self.config_map.get(current_character_id)
-        current_type = current_config.type if current_config else "monster"
-        
-        # 타겟 타입 설정 (몬스터면 플레이어 공격, 플레이어면 몬스터 공격)
-        target_type = "player" if current_type == "monster" else "monster"
-        
-        # 대상 추출
-        target_characters = []
-        for char in state.characters:
-            char_config = self.config_map.get(char.id)
-            if char_config and char_config.type == target_type:
-                target_characters.append(char)
-        
-        if not target_characters:
-            # 타겟이 없는 경우, 대기 상태 반환
-            action = CharacterAction(
-                move_to=current_character.position,
-                skill="대기",
-                target_character_id=current_character_id,
-                reason="공격 대상이 없음",
-                remaining_ap=current_character.ap,
-                remaining_mov=current_character.mov
-            )
-            
-            return BattleActionResponse(
-                current_character_id=current_character_id,
-                action=action
-            )
-        
-        # 가장 가까운 타겟 찾기
-        target = min(
-            target_characters, 
-            key=lambda c: calculate_manhattan_distance(current_character.position, c.position)
-        )
-        
-        # 기본 행동 생성
-        current_position = current_character.position
-        current_ap = current_character.ap
-        current_mov = current_character.mov
-        
-        # 스킬 정보
-        skill_name = "타격"  # 기본 스킬
-        if current_config and current_config.skills:
-            skill_name = current_config.skills[0]  # 첫 번째 스킬 사용
-        
-        # 이동할 위치 계산 - 가장 가까운 타겟 방향으로 이동
-        move_to_position = current_position
-        
-        # 움직일 수 있는 경우 타겟쪽으로 한 칸 이동
-        if current_mov > 0:
-            x1, y1 = current_position
-            x2, y2 = target.position
-            
-            # 방향 계산
-            dx = 1 if x2 > x1 else (-1 if x2 < x1 else 0)
-            dy = 1 if y2 > y1 else (-1 if y2 < y1 else 0)
-            
-            # 새 위치 계산 (x 또는 y 중 하나만 이동)
-            if dx != 0:
-                move_to_position = (x1 + dx, y1)
-            elif dy != 0:
-                move_to_position = (x1, y1 + dy)
-        
-        # 행동 비용 계산
-        costs = calculate_action_costs(
-            from_position=current_position,
-            to_position=move_to_position,
-            skill_name=skill_name,
-            current_ap=current_ap,
-            current_mov=current_mov
-        )
-        
-        # 행동 생성
+        # 기본 대기 행동
         action = CharacterAction(
-            move_to=move_to_position,
-            skill=skill_name,
-            target_character_id=target.id,
-            reason="기본 판단 로직",
-            remaining_ap=costs['remaining_ap'],
-            remaining_mov=costs['remaining_mov']
+            move_to=current_character.position,  # 제자리 유지
+            skill="대기",                        # 기본 대기 스킬
+            target_character_id=current_character_id,  # 자기 자신이 타겟
+            reason="AI 판단 실패로 인한 기본 행동",
+            remaining_ap=current_character.ap,   # AP 변화 없음
+            remaining_mov=current_character.mov  # MOV 변화 없음
         )
         
-        # 디버깅 로그
-        print(f"폴백 결정: 캐릭터 ID={current_character_id}, 행동={skill_name}")
+        print(f"폴백 결정: 캐릭터 ID={current_character_id}, 기본 대기 행동 수행")
         
         return BattleActionResponse(
             current_character_id=current_character_id,
