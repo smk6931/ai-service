@@ -1,6 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from app.models.combat import BattleInitRequest, BattleState, BattleActionResponse
 from app.services.combat import CombatService
+from app.api.examples.combat import (
+    BATTLE_START_REQUEST_EXAMPLE,
+    BATTLE_START_RESPONSE_EXAMPLE,
+    BATTLE_ACTION_REQUEST_EXAMPLE,
+    BATTLE_ACTION_RESPONSE_EXAMPLE,
+    BATTLE_START_DESCRIPTION,
+    BATTLE_ACTION_DESCRIPTION
+)
 
 router = APIRouter(prefix="/battle", tags=["battle"])
 
@@ -10,12 +18,24 @@ combat_service = CombatService()
 def get_combat_service():
     return combat_service
 
-@router.post("/start")
+@router.post(
+    "/start",
+    description=BATTLE_START_DESCRIPTION,
+    responses={
+        200: {
+            "description": "전투 시작 성공",
+            "content": {
+                "application/json": {
+                    "example": BATTLE_START_RESPONSE_EXAMPLE
+                }
+            }
+        }
+    }
+)
 async def battle_start(
-    request: BattleInitRequest, 
+    request: BattleInitRequest = Body(..., example=BATTLE_START_REQUEST_EXAMPLE), 
     service: CombatService = Depends(get_combat_service)
 ):
-    """전투 시작 API - 캐릭터, 지형, 날씨 정보 설정"""
     result = await service.start_battle(
         characters=request.characters,
         terrain=request.terrain,
@@ -23,12 +43,25 @@ async def battle_start(
     )
     return result
 
-@router.post("/action", response_model=BattleActionResponse)
+@router.post(
+    "/action", 
+    response_model=BattleActionResponse,
+    description=BATTLE_ACTION_DESCRIPTION,
+    responses={
+        200: {
+            "description": "몬스터 행동 결정 성공",
+            "content": {
+                "application/json": {
+                    "example": BATTLE_ACTION_RESPONSE_EXAMPLE
+                }
+            }
+        }
+    }
+)
 async def battle_action(
-    state: BattleState, 
+    state: BattleState = Body(..., example=BATTLE_ACTION_REQUEST_EXAMPLE), 
     service: CombatService = Depends(get_combat_service)
 ):
-    """전투 판단 API - 몬스터의 다음 행동 결정"""
     try:
         response = await service.decide_actions(state)
         return response
