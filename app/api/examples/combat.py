@@ -3,17 +3,17 @@ BATTLE_START_REQUEST_EXAMPLE = {
   "characters": [
     {
       "id": "monster1",
-      "name": "아이스 골렘",
+      "name": "앤트",
       "type": "monster",
-      "traits": ["충동적"],
-      "skills": ["타격", "몸통 박치기", "생존 본능", "날카로운 발톱"]
+      "traits": ["신중함"],
+      "skills": ["타격", "몸통 박치기", "생존 본능", "대지 가르기"]
     },
     {
       "id": "monster2",
-      "name": "파이어 골렘",
+      "name": "리자드맨",
       "type": "monster",
-      "traits": ["겁쟁이"],
-      "skills": ["타격", "포효", "방어 지휘"]
+      "traits": ["충동적", "잔인함"],
+      "skills": ["타격", "포효", "방어 지휘", "날카로운 발톱"]
     },
     {
       "id": "player1",
@@ -83,14 +83,17 @@ BATTLE_ACTION_REQUEST_EXAMPLE = {
 # /battle/action 응답 예시
 BATTLE_ACTION_RESPONSE_EXAMPLE = {
   "current_character_id": "monster1",
-  "action":
-  {
-      "move_to": [1, 11],
-      "skill": "타격",
-      "target_character_id": "player1",
-      "reason": "충동적인 특성으로 인해 가까운 적인 Player1를 공격하는 것이 최적의 선택이며, 몸통 박치기는 근접 스킬로 유효한 공격입니다.",
-      "remaining_ap": 4,
-      "remaining_mov": 0
+  "action": {
+    "move_to": [
+      3,
+      13
+    ],
+    "skill": "대지 가르기",
+    "target_character_id": "player2",
+    "reason": "적에게 강력한 충격을 가하기 위해 대지 가르기 사용.",
+    "dialogue": "땅이.. 그대를 거부한다..",
+    "remaining_ap": 2,
+    "remaining_mov": 0
   }
 }
 
