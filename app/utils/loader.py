@@ -13,9 +13,12 @@ def load_status_effects(path='app/data/status_effect.json'):
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
     
-skills = load_skills()
-traits = load_traits()
-status_effects = load_status_effects()
+# skills = load_skills()
+# traits = load_traits()
+# status_effects = load_status_effects()
+skill_info_all = load_skills()
+traits_info_all = load_traits()
+status_effects_info_all = load_status_effects()
 
 prompt_combat_rules = """
 당신은 턴제 RPG 게임의 AI 전투 시스템입니다.

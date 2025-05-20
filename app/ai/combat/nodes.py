@@ -5,7 +5,8 @@ from langchain_core.prompts import PromptTemplate
 from langchain.prompts import FewShotPromptTemplate
 
 from app.ai.combat.states import LangGraphBattleState, Character, ActionPlan
-from app.utils.combat import calculate_manhattan_distance
+from app.utils.combat import calculate_manhattan_distance, calculate_action_costs
+from app.utils.loader import skill_info_all
 from dotenv import load_dotenv
 # 환경 변수 로드
 load_dotenv()
@@ -133,8 +134,7 @@ def plan_action(state: LangGraphBattleState) -> LangGraphBattleState:
     
     # 프롬프트 템플릿 설정
     prompt_template = PromptTemplate(
-        template="""
-        캐릭터: {character_name} ({character_type})
+        template="""캐릭터: {character_name} ({character_type})
         위치: {position}
         자원: HP {hp}, AP {ap}, MOV {mov}
         사용 가능한 스킬: {skills}
@@ -146,9 +146,8 @@ def plan_action(state: LangGraphBattleState) -> LangGraphBattleState:
         
         현재 위치에서 타겟을 향해 어떻게 움직이고, 어떤 스킬을 사용할지 결정하세요.
         이동은 한 턴에 최대 MOV값 만큼 가능합니다.
-        
-        {format_instructions}
-        """,
+        스킬 사용 시 스킬 범위 내에 타겟이 있어야 합니다.
+        {format_instructions}""",
         input_variables=["character_name", "character_type", "position", "hp", "ap", "mov", 
                         "skills", "strategy", "target_id", "target_position"],
         partial_variables={"format_instructions": parser.get_format_instructions()}
@@ -178,6 +177,64 @@ def plan_action(state: LangGraphBattleState) -> LangGraphBattleState:
         
         # Pydantic 파서로 파싱
         action_plan = parser.parse(response)
+        
+        # 행동 유효성 검증 및 자원 감소 계산
+        if action_plan.skill:
+            print(f"=====스킬명: {action_plan.skill}=====")
+            skill_info = skill_info_all.get(action_plan.skill, {})
+            print(f"=====스킬 정보: {skill_info}=====")
+            skill_ap_cost = skill_info.get('ap', 1)
+            print(f"=====스킬 소모 AP: {skill_ap_cost}=====")
+            skill_range = skill_info.get('range', 1)
+            print(f"=====스킬 범위: {skill_range}=====")
+            
+            
+            # 이동 및 스킬 사용 비용 계산
+            action_costs = calculate_action_costs(
+                current_position=current_character.position,
+                target_position=action_plan.move_to if action_plan.move_to else current_character.position,
+                current_ap=current_character.ap,
+                current_mov=current_character.mov,
+                skill_ap_cost=skill_ap_cost
+            )
+            
+            # 행동 가능 여부 확인
+            if not action_costs['can_perform']:
+                print(f"행동 불가: {action_costs['reason_if_fail']}")
+                # 행동이 불가능할 경우 대기 행동으로 변경
+                action_plan = ActionPlan(
+                    move_to=current_character.position,
+                    skill=None,
+                    target_character_id=current_character.id,
+                    reason=f"자원 부족으로 인한 대기 ({action_costs['reason_if_fail']})",
+                    remaining_ap=current_character.ap,
+                    remaining_mov=current_character.mov
+                )
+            else:
+                # 행동 가능할 경우 남은 자원 업데이트
+                action_plan.remaining_ap = action_costs['remaining_ap']
+                action_plan.remaining_mov = action_costs['remaining_mov']
+        else:
+            # 스킬을 사용하지 않는 경우 (대기)
+            if action_plan.move_to:
+                # 이동만 하는 경우
+                move_distance = calculate_manhattan_distance(current_character.position, action_plan.move_to)
+                remaining_mov = current_character.mov - move_distance
+                
+                # 이동 가능 여부 확인
+                if remaining_mov < 0:
+                    print(f"이동 불가: MOV 부족")
+                    action_plan.move_to = current_character.position
+                    action_plan.remaining_mov = current_character.mov
+                else:
+                    action_plan.remaining_mov = remaining_mov
+                
+                action_plan.remaining_ap = current_character.ap
+            else:
+                # 아무것도 하지 않는 경우
+                action_plan.move_to = current_character.position
+                action_plan.remaining_ap = current_character.ap
+                action_plan.remaining_mov = current_character.mov
         
     except Exception as e:
         print(f"LLM 호출 또는 파싱 실패: {str(e)}")
@@ -240,13 +297,11 @@ def generate_dialogue(state: LangGraphBattleState) -> LangGraphBattleState:
     # 예제 프롬프트 템플릿 설정
     example_prompt = PromptTemplate(
         input_variables=["name", "traits", "strategy", "skill", "dialogue"],
-        template="""
-캐릭터: {name}
+        template="""캐릭터: {name}
 특성: {traits}
 전략: {strategy}
 스킬: {skill}
-대사: {dialogue}
-"""
+대사: {dialogue}"""
     )
     
     # FewShotPromptTemplate 설정
@@ -267,10 +322,9 @@ def generate_dialogue(state: LangGraphBattleState) -> LangGraphBattleState:
 - 골렘: 기계적, 단조로운 어조, 짧은 문장, 1인칭 사용 희박
 - 앤트: 느리고 묵직한 말투, 자연과 생명 언급 잦음, 의인화된 자연체 느낌, 호흡 길고 문장 완성도 높음
 - 리자드맨: 짧고 끊어지는 말투, 'ㅅ', 'ㅆ' 발음 강조, 육식동물 같은 표현
-- 고블린: 거친 말투, 비문법적 표현, 3인칭으로 자신 지칭
-""",
+- 고블린: 거친 말투, 비문법적 표현, 3인칭으로 자신 지칭""",
         suffix="""
-아래 정보를 바탕으로 판타지 RPG 세계관에서 표현되는 {character_name}의 성격을 최대한 반영하여 상황에 어울리는 짧은 대사를 한 문장으로 작성하세요:
+아래 정보를 바탕으로 판타지 RPG 세계관의 {character_name}의 성격을 최대한 반영하여 상황에 어울리는 짧은 대사를 한 문장으로 작성하세요:
 캐릭터: {character_name}
 특성: {character_traits}
 전략: {strategy}
