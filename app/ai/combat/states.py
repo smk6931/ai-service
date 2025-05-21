@@ -37,6 +37,15 @@ class ActionPlan(BaseModel):
         description="캐릭터가 행동과 함께 말할 대사"
     )
 
+class Strategy(BaseModel):
+    """전략 결정 결과를 구조화하는 모델"""
+    type: Literal["공격 우선", "처치 우선", "방어 우선", "지원 우선", "도망 우선"] = Field(
+        description="선택한 전략 유형"
+    )
+    reason: str = Field(
+        description="이 전략을 선택한 이유에 대한 간략한 설명"
+    )
+
 class LangGraphBattleState(BaseModel):
     cycle: int = Field(description="현재 전투의 라운드 번호")
     turn: int = Field(description="현재 라운드 내의 턴 번호")
@@ -66,6 +75,10 @@ class LangGraphBattleState(BaseModel):
     strategy: Optional[str] = Field(
         default=None,
         description="현재 캐릭터가 선택한 전략"
+    )
+    strategy_info: Optional[Strategy] = Field(
+        default=None,
+        description="현재 캐릭터가 선택한 전략의 구조화된 정보"
     )
     target_character_id: Optional[str] = Field(
         default=None,

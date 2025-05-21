@@ -5,18 +5,29 @@ from app.ai.combat.states import LangGraphBattleState
 from app.ai.combat.nodes import (
     analyze_situation,
     decide_strategy,
-    plan_action,
+    plan_attack,
+    plan_flee,
     generate_dialogue,
     create_response
 )
 
-def should_skip_dialogue(state: LangGraphBattleState) -> str:
-    """대사 생성 여부 결정 함수"""
-    # 대기 상태인 경우 대사 생성 스킵
-    if (state.action_plan and state.action_plan.skill is None and 
-        state.action_plan.target_character_id == state.current_character_id):
-        return "skip_dialogue"
-    return "generate_dialogue"
+def should_route_to_attack_or_flee(state: LangGraphBattleState) -> str:
+    """전략 타입에 따라 공격 또는 도망 노드로 라우팅"""
+    # 구조화된 전략 정보를 기반으로 라우팅 결정
+    if state.strategy_info:
+        strategy_type = state.strategy_info.type
+        if strategy_type in ["방어 우선", "도망 우선"]:
+            return "flee"
+        else:
+            return "attack"
+    # else:
+    #     # 구조화된 정보가 없는 경우 텍스트 기반으로 판단 (후방 호환성)
+    #     strategy_text = state.strategy.lower() if state.strategy else ""
+    #     if "도망" in strategy_text or "후퇴" in strategy_text or "방어" in strategy_text:
+    #         return "flee"
+    #     else:
+    #         # 기본값은 공격
+    #         return "attack"
 
 def create_combat_graph() -> StateGraph:
     """전투 AI 그래프 생성"""
@@ -26,23 +37,27 @@ def create_combat_graph() -> StateGraph:
     # 노드 추가
     workflow.add_node("analyze_situation", analyze_situation)
     workflow.add_node("decide_strategy", decide_strategy)
-    workflow.add_node("plan_action", plan_action)
+    workflow.add_node("plan_attack", plan_attack)
+    workflow.add_node("plan_flee", plan_flee)
     workflow.add_node("generate_dialogue", generate_dialogue)
     workflow.add_node("create_response", create_response)
     
     # 엣지 연결 (기본 흐름)
     workflow.add_edge("analyze_situation", "decide_strategy")
-    workflow.add_edge("decide_strategy", "plan_action")
     
-    # 조건부 분기: 대사 생성 스킵 여부
+    # 전략에 따른 분기
     workflow.add_conditional_edges(
-        "plan_action",
-        should_skip_dialogue,
+        "decide_strategy",
+        should_route_to_attack_or_flee,
         {
-            "generate_dialogue": "generate_dialogue",
-            "skip_dialogue": "create_response"
+            "attack": "plan_attack",
+            "flee": "plan_flee"
         }
     )
+    
+    # 행동 계획 수립 후 대사 생성
+    workflow.add_edge("plan_attack", "generate_dialogue")
+    workflow.add_edge("plan_flee", "generate_dialogue")
     
     workflow.add_edge("generate_dialogue", "create_response")
     workflow.add_edge("create_response", END)
