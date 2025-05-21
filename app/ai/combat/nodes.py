@@ -28,7 +28,7 @@ def analyze_situation(state: LangGraphBattleState) -> LangGraphBattleState:
     
     # 자원 정보 계산 (HP 비율, AP, MOV 등)
     resource_info = {
-        "hp_ratio": current_character.hp / 100,  # 예시: 최대 HP가 100이라고 가정
+        "hp_ratio": current_character.hp,
         "ap": current_character.ap,
         "mov": current_character.mov
     }
