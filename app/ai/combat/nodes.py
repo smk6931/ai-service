@@ -5,7 +5,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain.prompts import FewShotPromptTemplate
 
 from app.ai.combat.states import LangGraphBattleState, Character, ActionPlan
-from app.utils.combat import calculate_manhattan_distance, calculate_action_costs
+from app.utils.combat import calculate_manhattan_distance, calculate_action_costs, filter_usable_skills
 from app.utils.loader import skill_info_all
 from dotenv import load_dotenv
 # 환경 변수 로드
@@ -125,9 +125,42 @@ def plan_action(state: LangGraphBattleState) -> LangGraphBattleState:
             key=lambda c: calculate_manhattan_distance(current_character.position, c.position)
         )
         target_id = target_character.id
+        target_position = target_character.position
     else:
         # 상대가 없으면 자기 자신을 타겟으로 (대기)
         target_id = current_character.id
+        target_position = current_character.position
+    
+    # 사용 가능한 스킬 필터링
+    usable_skills = filter_usable_skills(
+        current_position=current_character.position,
+        target_position=target_position,
+        mov=current_character.mov,
+        skills=current_character.skills,
+        skill_info_map=skill_info_all
+    )
+    
+    # 스킬 설명 구성
+    skill_descriptions = []
+    
+    # 즉시 사용 가능한 스킬 먼저 추가
+    for skill in usable_skills['immediately_usable']:
+        skill_info = skill_info_all.get(skill, {})
+        description = skill_info.get('description', '설명 없음')
+        ap_cost = skill_info.get('ap', 1)
+        skill_range = skill_info.get('range', 1)
+        skill_descriptions.append(f"- {skill} (AP: {ap_cost}, 범위: {skill_range}, 즉시 사용 가능): {description}")
+    
+    # 이동 후 사용 가능한 스킬 추가
+    for skill in usable_skills['reachable_usable']:
+        skill_info = skill_info_all.get(skill, {})
+        description = skill_info.get('description', '설명 없음')
+        ap_cost = skill_info.get('ap', 1)
+        skill_range = skill_info.get('range', 1)
+        skill_descriptions.append(f"- {skill} (AP: {ap_cost}, 범위: {skill_range}, 이동 후 사용 가능): {description}")
+    
+    # 현재 위치에서 타겟까지의 거리
+    current_distance = calculate_manhattan_distance(current_character.position, target_position)
     
     # PydanticOutputParser 설정
     parser = PydanticOutputParser(pydantic_object=ActionPlan)
@@ -135,21 +168,26 @@ def plan_action(state: LangGraphBattleState) -> LangGraphBattleState:
     # 프롬프트 템플릿 설정
     prompt_template = PromptTemplate(
         template="""캐릭터: {character_name} ({character_type})
-        위치: {position}
-        자원: HP {hp}, AP {ap}, MOV {mov}
-        사용 가능한 스킬: {skills}
-        
-        전략: {strategy}
-        
-        타겟 캐릭터 ID: {target_id}
-        타겟 위치: {target_position}
-        
-        현재 위치에서 타겟을 향해 어떻게 움직이고, 어떤 스킬을 사용할지 결정하세요.
-        이동은 한 턴에 최대 MOV값 만큼 가능합니다.
-        스킬 사용 시 스킬 범위 내에 타겟이 있어야 합니다.
-        {format_instructions}""",
+위치: {position}
+자원: HP {hp}, AP {ap}, MOV {mov}
+
+전략: {strategy}
+
+타겟 캐릭터 ID: {target_id}
+타겟 위치: {target_position}
+현재 타겟과의 거리: {current_distance}
+
+사용 가능한 스킬 정보:
+{skill_descriptions}
+
+현재 위치에서 타겟을 향해 어떻게 움직이고, 어떤 스킬을 사용할지 결정하세요.
+이동은 한 턴에 최대 MOV값 만큼 가능합니다.
+스킬 사용 시 스킬 범위 내에 타겟이 있어야 합니다.
+
+{format_instructions}""",
         input_variables=["character_name", "character_type", "position", "hp", "ap", "mov", 
-                        "skills", "strategy", "target_id", "target_position"],
+                        "strategy", "target_id", "target_position", "current_distance",
+                        "skill_descriptions"],
         partial_variables={"format_instructions": parser.get_format_instructions()}
     )
     
@@ -161,14 +199,15 @@ def plan_action(state: LangGraphBattleState) -> LangGraphBattleState:
         hp=current_character.hp,
         ap=current_character.ap,
         mov=current_character.mov,
-        skills=', '.join(current_character.skills),
         strategy=state.strategy,
         target_id=target_id,
-        target_position=next((c.position for c in state.characters if c.id == target_id), None)
+        target_position=target_position,
+        current_distance=current_distance,
+        skill_descriptions="\n".join(skill_descriptions) if skill_descriptions else "사용 가능한 스킬이 없습니다."
     )
     
-    # # LLM 호출 로깅
-    # print("[행동 계획 수립 노드] 프롬프트\n", prompt)
+    # LLM 호출 로깅
+    print("[행동 계획 수립 노드] 프롬프트\n", prompt)
     
     try:
         # LLM 호출 및 파싱
