@@ -1,107 +1,87 @@
-from typing import Dict, Any
-from langchain_core.messages import SystemMessage
-from langgraph.graph import StateGraph, END, START
+from typing import List, Dict, Any, Optional
+from langchain.schema import BaseMessage
+from langgraph.graph import StateGraph, END
+from app.ai.combat.states import LangGraphBattleState
+from app.ai.combat.nodes import (
+    analyze_situation,
+    decide_strategy,
+    plan_attack,
+    plan_flee,
+    generate_dialogue,
+    create_response
+)
 
-from app.models.combat import BattleStateForAI, BattleActionResponse, CharacterAction
-from app.ai.combat.states import CombatState
-from app.ai.combat.nodes.situation import analyze_situation
-from app.ai.combat.nodes.strategy import decide_strategy
-from app.ai.combat.nodes.target import select_target
-from app.ai.combat.nodes.action import generate_action
-from app.ai.combat.nodes.resource import calculate_resources
-from app.ai.combat.nodes import debug_node
-from app.ai.combat.utils import get_current_character
-
-
-def create_response(state: CombatState) -> Dict[str, Any]:
-    """최종 응답을 생성합니다.
-    
-    Args:
-        state: 전투 상태
-        
-    Returns:
-        행동 응답 결과
-    """
-    battle_state = state["battle_state"]
-    strategy_decision = state.get("strategy_decision", {})
-    # print(f"strategy_decision: {strategy_decision}")
-    final_actions = state.get("final_actions", [])
-    # print(f"final_actions: {final_actions}")
-    
-    # 응답 객체 생성 - 행동이 있으면 첫 번째 행동만 사용, 없으면 기본값 생성
-    if final_actions:
-        action = final_actions[0]
-        action.reason = strategy_decision.get("strategy_dict", {}).get("reason", "")
-    else:
-        # 기본 행동 생성
-        current = get_current_character(battle_state)
-        action = CharacterAction(
-            move_to=current.position if current else (0, 0),
-            skill="대기",
-            target_character_id=current.id if current else "",
-            reason="행동 없음",
-            remaining_ap=0,
-            remaining_mov=0
-        )
-    
-    response = BattleActionResponse(
-        current_character_id=battle_state.current_character_id,
-        action=action
-    )
-    
-    # 결과 반환
-    result = {
-        "response": response,
-        "messages": [SystemMessage(content=f"[시스템] 전투 결정 완료: 행동 - {action.skill}")]
-    }
-    
-    return result
-
+def should_route_to_attack_or_flee(state: LangGraphBattleState) -> str:
+    """전략 타입에 따라 공격 또는 도망 노드로 라우팅"""
+    # 구조화된 전략 정보를 기반으로 라우팅 결정
+    if state.strategy_info:
+        strategy_type = state.strategy_info.type
+        if strategy_type in ["방어 우선", "도망 우선"]:
+            return "flee"
+        else:
+            return "attack"
+    # else:
+    #     # 구조화된 정보가 없는 경우 텍스트 기반으로 판단 (후방 호환성)
+    #     strategy_text = state.strategy.lower() if state.strategy else ""
+    #     if "도망" in strategy_text or "후퇴" in strategy_text or "방어" in strategy_text:
+    #         return "flee"
+    #     else:
+    #         # 기본값은 공격
+    #         return "attack"
 
 def create_combat_graph() -> StateGraph:
-    """전투 결정을 위한 LangGraph를 생성합니다.
-    
-    Returns:
-        컴파일된 LangGraph 상태 그래프
-    """
-    print("전투 그래프 생성 시작")
-    
-    # 노드 정의 - 각 단계별 처리 함수 매핑
-    nodes = {
-        "analyze_situation": analyze_situation,  # 1. 상황 분석
-        "decide_strategy": decide_strategy,      # 2. 전략 결정
-        "select_target": select_target,          # 3. 타겟 선택
-        "generate_action": generate_action,      # 4. 행동 생성
-        "calculate_resources": calculate_resources,  # 5. 리소스 계산
-        "create_response": create_response       # 6. 응답 생성
-    }
-    
-    # 엣지 정의 - 노드 연결 순서
-    edges = [
-        (START, "analyze_situation"),
-        ("analyze_situation", "decide_strategy"),
-        ("decide_strategy", "select_target"),
-        ("select_target", "generate_action"),
-        ("generate_action", "calculate_resources"),
-        ("calculate_resources", "create_response"),
-        ("create_response", END)
-    ]
-    
-    # 그래프 생성
-    combat_graph = StateGraph(CombatState)
+    """전투 AI 그래프 생성"""
+    # 상태 그래프 생성
+    workflow = StateGraph(LangGraphBattleState)
     
     # 노드 추가
-    for name, func in nodes.items():
-        combat_graph.add_node(name, func)
+    workflow.add_node("analyze_situation", analyze_situation)
+    workflow.add_node("decide_strategy", decide_strategy)
+    workflow.add_node("plan_attack", plan_attack)
+    workflow.add_node("plan_flee", plan_flee)
+    workflow.add_node("generate_dialogue", generate_dialogue)
+    workflow.add_node("create_response", create_response)
     
-    # 엣지 추가
-    for start, end in edges:
-        combat_graph.add_edge(start, end)
+    # 엣지 연결 (기본 흐름)
+    workflow.add_edge("analyze_situation", "decide_strategy")
     
-    # 그래프 컴파일
-    compiled_graph = combat_graph.compile()
+    # 전략에 따른 분기
+    workflow.add_conditional_edges(
+        "decide_strategy",
+        should_route_to_attack_or_flee,
+        {
+            "attack": "plan_attack",
+            "flee": "plan_flee"
+        }
+    )
     
-    print("전투 그래프 생성 완료")
-    print("그래프 순서: 상황분석 → 전략결정 → 타겟선택 → 행동생성 → 리소스계산 → 응답생성")
+    # 행동 계획 수립 후 대사 생성
+    workflow.add_edge("plan_attack", "generate_dialogue")
+    workflow.add_edge("plan_flee", "generate_dialogue")
     
-    return compiled_graph 
+    workflow.add_edge("generate_dialogue", "create_response")
+    workflow.add_edge("create_response", END)
+    
+    # 시작 노드 설정
+    workflow.set_entry_point("analyze_situation")
+    
+    return workflow
+
+async def run_graph(state: LangGraphBattleState) -> LangGraphBattleState:
+    """전투 AI 그래프 실행"""
+    try:
+        # 그래프 생성
+        graph = create_combat_graph()
+        
+        # 그래프 컴파일
+        compiled_graph = graph.compile()
+        
+        # 비동기 실행 (LangGraph 1.0.0+)
+        result = await compiled_graph.ainvoke(state)
+        
+        # 최종 상태 반환
+        return result
+    except Exception as e:
+        print(f"그래프 실행 오류: {str(e)}")
+        # 오류 발생 시 원래 상태 반환
+        return state
