@@ -2,3 +2,4 @@
 app/test
 **__pycache__
 app/vector_db/
+app/services/assistant/item_gen_history.jsonl
