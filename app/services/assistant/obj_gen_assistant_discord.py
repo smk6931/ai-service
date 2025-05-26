@@ -49,7 +49,7 @@ loreless_summary = """
 기억을 잃은 주인공이 유물을 단서로 과거를 되찾고, 감정과 기억을 시험당하며 성장하는 서사
 
 [주인공]
-이름 없는 자 “카엔(Kaïnn)” 
+이름 없는 자
 
 [핵심 지명]
 카일름 마을, 파란디온 폐허, 브라에 사막, 나르센 숲, 불협의 성채, 라실로 예언탑 & 봉인 신전
@@ -62,35 +62,38 @@ loreless_summary = """
 # 3) Prompt template
 item_prompt = ChatPromptTemplate.from_template("""
 당신은 중세 판타지 소설의 아이템 디자이너입니다.
-**다음 정보를 고려하여 아이템에 대한 설명을 작성해주세요.**
+사용자가 입력한 아이템의 '아이템 기능'과 '장면', '세계관'를 참고하여, 판타지 아이템 정보를 직접 작성해주세요.
                                                
 [스타일 지침]
 - ‘아이템 기능’과 ‘장면 요약’을 보고,  
-  - 스토리가 풍부하거나 서사가 필요한 경우엔 분위기를 살린 서술형 설명을 하세요.  
+  - 분위기를 살린 간단한 서술형 설명을 만들어주세요..  
   - 단순하거나 평범한 효과나 기능만 요구된 경우엔 세계관 정보 없이 핵심 위주로 간결하게 설명하세요.  
-- 과도한 미사여구나 불필요한 수식어는 자제하고, 상황에 맞는 스타일을 선택하세요.
+  - 과도한 미사여구나 불필요한 수식어는 자제하고, 상황에 맞는 스타일을 선택하세요.
 
 [아이템 기능]
 {function}
 
-[세계관 정보]
+[세계관]
 {loreless_summary}
 
-[장면 요약]
+[장면]
 {scene_summary}
 
 다음과 같은 마크다운 형식으로 출력해주세요:
 
-## 아이템 이름  
-- (여기에 이름)
-## 설명  
-- (기능과 장면, 세계관 요소를 녹여서, 2 문장 이내로)
-## 희귀도  
-- 보통 / 희귀 / 전설 / 유물
-## 효과 태그  
-- 태그1, 태그2, …
-## 등장 이유  
-- 왜 이 시점, 이 장면에 어울리는지
+## item_category          
+- (0=소비아이템, 1=무기 및 방어구, 2=Else 중 가장 적절한 하나를 선택하여 int만 출력)                                     
+## category_name                                            
+- (Equip, Consume, Else 중 가장 적절한 하나를 선택하여 출력)
+## item_type
+- (0=무기, 1=방어구, 2=투구, 3=망토, 4=크리처, 5=소비아이템, 0=그외 중 하나를 선택하여 출력)
+## item_class
+- (1=전사(검), 2=궁수(활, 화살), 0=공용 중 하나를 선택하여 출력)
+## item_name
+- ({loreless_summary}에 어울리며 자연스럽고 간결한 아이템 한글 이름) 
+## description
+- (아이템기능{function}을 단답형으로 생성, 아이템에 대한 설명을 세계관{loreless_summary}과 장면{scene_summary}을 반영하여 간결한 문장으로 생성)                                     
+                                               
 """
 )
 
@@ -119,7 +122,7 @@ class ItemDesigner:
         print(f"▶ step() 호출 (function={self.function!r}, scene_desc={self.scene_desc!r})")
         if self.function is None:
             self.function = user_input
-            return "🛠️ 어떤 장면에 이 아이템이 등장하나요? 장면을 설명해주세요."
+            return "🛠️ 이 아이템은 어떤 상황에 등장하나요? 장면을 설명해주세요."
 
         if self.scene_desc is None:
             self.scene_desc = user_input
@@ -147,25 +150,25 @@ async def on_ready():
     print(f"▶ {bot.user} 연결됨, 명령어·메시지 핸들러 대기 중…")
 
 
-@bot.command(name="아이템설계")
+@bot.command(name="아이템")
 async def item_design(ctx, *, user_input: str = None):
     user_id = ctx.author.id
     # 사용자 커맨드 기록
     log_interaction({
         "type": "user",
         "user_id": user_id,
-        "command": "아이템설계",
+        "command": "아이템",
         "content": user_input or ""
     })
 
     # Start new session
     if user_id not in designers:
         designers[user_id] = ItemDesigner(retriever, chain, loreless_summary)
-        prompt = "🛠️ 어떤 아이템의 기능을 원하시나요? 예: '일정 확률로 적의 마법을 반사'"
+        prompt = "🛠️ 어떤 기능의 아이템을 만들고 싶으신가요? 예: '체력 30 회복'"
         log_interaction({
             "type": "bot",
             "user_id": user_id,
-            "command": "아이템설계",
+            "command": "아이템",
             "content": prompt
         })
         await ctx.send(prompt)
