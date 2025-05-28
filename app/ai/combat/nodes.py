@@ -602,52 +602,28 @@ def validate_action_plan(action_plan: ActionPlan, current_character: Character,
         skill_info = skill_info_all.get(action_plan.skill, {})
         skill_ap_cost = skill_info.get('ap', 1)
         
-        # 이동 및 스킬 사용 비용 계산
-        action_costs = calculate_action_costs(
-            current_position=current_position,
-            target_position=action_plan.move_to if action_plan.move_to else current_position,
-            current_ap=current_character.ap,
-            current_mov=current_character.mov,
-            skill_ap_cost=skill_ap_cost
-        )
-        
-        # 행동 가능 여부 확인
-        if not action_costs['can_perform']:
-            print(f"행동 불가: {action_costs['reason_if_fail']}")
-            # 행동이 불가능할 경우 대기 행동으로 변경
+        # AP 비용만 검증
+        if current_character.ap < skill_ap_cost:
+            print(f"행동 불가: AP 부족 (필요: {skill_ap_cost}, 현재: {current_character.ap})")
+            # AP 부족 시 대기 행동으로 변경
             action_plan = ActionPlan(
                 move_to=current_position,
                 skill=None,
                 target_character_id=current_character.id,
-                reason=f"자원 부족으로 인한 대기 ({action_costs['reason_if_fail']})",
+                reason=f"자원 부족으로 인한 대기 (AP 부족)",
                 remaining_ap=current_character.ap,
                 remaining_mov=current_character.mov
             )
         else:
-            # 행동 가능할 경우 남은 자원 업데이트
-            action_plan.remaining_ap = action_costs['remaining_ap']
-            action_plan.remaining_mov = action_costs['remaining_mov']
-    else:
-        # 스킬을 사용하지 않는 경우 (대기)
-        if action_plan.move_to:
-            # 이동만 하는 경우
-            move_distance = calculate_manhattan_distance(current_position, action_plan.move_to)
-            remaining_mov = current_character.mov - move_distance
-            
-            # 이동 가능 여부 확인
-            if remaining_mov < 0:
-                print(f"이동 불가: MOV 부족")
-                action_plan.move_to = current_position
-                action_plan.remaining_mov = current_character.mov
-            else:
-                action_plan.remaining_mov = remaining_mov
-            
-            action_plan.remaining_ap = current_character.ap
-        else:
-            # 아무것도 하지 않는 경우
-            action_plan.move_to = current_position
-            action_plan.remaining_ap = current_character.ap
+            # AP 감소만 처리
+            action_plan.remaining_ap = current_character.ap - skill_ap_cost
+            # 이동력은 검증하지 않고 그대로 유지
             action_plan.remaining_mov = current_character.mov
+    else:
+        # 스킬을 사용하지 않는 경우 (대기 또는 순수 이동)
+        # 이동력 검증 없이 자원 그대로 유지
+        action_plan.remaining_ap = current_character.ap
+        action_plan.remaining_mov = current_character.mov
     
     return action_plan
 
