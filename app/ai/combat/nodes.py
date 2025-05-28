@@ -81,7 +81,7 @@ def decide_strategy(state: LangGraphBattleState) -> LangGraphBattleState:
 2. 처치 우선 (가장 약한 적에게 최대 피해)
 3. 방어 우선 (회피 및 생존 중심)
 4. 지원 우선 (아군 지원에 집중)
-5. 도망 우선 (안전한 위치로 후퇴)
+5. 도망 우선 (안전한 위치로 후퇴) - 체력이 50% 이하일 때만 고려
 
 {format_instructions}""",
         input_variables=["character_name", "character_type", "character_traits", "hp", "ap", "mov", 
@@ -113,6 +113,12 @@ def decide_strategy(state: LangGraphBattleState) -> LangGraphBattleState:
         
         # Pydantic 파서로 파싱
         strategy_info = parser.parse(response)
+        
+        # 체력 제한 강제 적용 (체력이 50% 초과인데 도망 전략 선택한 경우 공격 전략으로 변경)
+        if strategy_info.type == "도망 우선" and current_character.hp > 50:
+            print(f"체력이 충분함에도 도망 전략 선택됨 - 공격 우선으로 변경")
+            strategy_info.type = "공격 우선"
+            strategy_info.reason = "체력이 충분하여 공격 전략으로 자동 변경 (체력 50 초과)"
         
         # 구조화된 전략 정보 저장
         state.strategy_info = strategy_info
@@ -531,6 +537,19 @@ def create_action_plan_prompt(character_name: str, character_type: str, position
     # PydanticOutputParser 설정
     parser = PydanticOutputParser(pydantic_object=ActionPlan)
     
+    # 이동 가능 범위 계산 및 설명 추가
+    movement_explanation = f"""
+이동 관련 중요 정보:
+- 현재 이동력(MOV): {mov}
+- 현재 위치: {position}
+- 타겟 위치: {target_position}
+- 맨해튼 거리: {current_distance}
+- 이동 가능 여부: {"가능" if mov >= current_distance else "불가능"}
+
+- 이동 시 반드시 현재 MOV({mov}) 이하의 거리만 이동 가능합니다.
+- 목표로 이동이 불가능한 경우 목표와 최대한 가까운 위치로 이동합니다.
+"""
+    
     # 프롬프트 템플릿 설정
     prompt_template = PromptTemplate(
         template="""캐릭터: {character_name} ({character_type})
@@ -542,6 +561,8 @@ def create_action_plan_prompt(character_name: str, character_type: str, position
 현재 타겟 ID: {target_id}
 현재 타겟까지의 거리: {current_distance}
 
+{movement_explanation}
+
 사용 가능한 스킬 정보:
 {skill_descriptions}
 
@@ -549,7 +570,7 @@ def create_action_plan_prompt(character_name: str, character_type: str, position
 
 {format_instructions}""",
         input_variables=["character_name", "character_type", "position", "hp", "ap", "mov", 
-                        "strategy", "target_id", "current_distance",
+                        "strategy", "target_id", "current_distance", "movement_explanation",
                         "skill_descriptions", "prompt_suffix"],
         partial_variables={"format_instructions": parser.get_format_instructions()}
     )
@@ -565,6 +586,7 @@ def create_action_plan_prompt(character_name: str, character_type: str, position
         strategy=strategy,
         target_id=target_id,
         current_distance=current_distance,
+        movement_explanation=movement_explanation,
         skill_descriptions="\n".join(skill_descriptions) if skill_descriptions else "사용 가능한 스킬이 없습니다.",
         prompt_suffix=prompt_suffix
     )
@@ -636,7 +658,7 @@ def handle_llm_response(prompt: str, current_character: Character, current_posit
     try:
         # LLM 호출 및 파싱
         response = llm.invoke(prompt).content
-        print(f"LLM 응답: {response[:100]}...")
+        print(f"LLM 응답 [행동 계획 생성]: {response[:500]}...")
         
         # Pydantic 파서로 파싱
         parser = PydanticOutputParser(pydantic_object=ActionPlan)
