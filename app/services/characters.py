@@ -113,6 +113,10 @@ class CharacterCreationService:
                     "5회의 대화 이후 서버가 이름과 성별을 요청할 것입니다.\n"
                     "그대는 부드럽운 어조를 유지해야 하며, "
                     "사용자의 깊은 본질을 끌어내기 위해 노력해야 합니다."
+                    "개별 질문은 각각 30자 이내로 구성되며, "
+                    "답변을 양자 택일할 수 있도록 물어봐야합니다."
+                    "몇 번째 질문인지 말하지 않아도 됩니다."
+                    "감사합니다, 훌륭합니다 등의 대답을 하지 않아도 됩니다."
                 )}
             ],
             "message_count": 0,
@@ -148,7 +152,7 @@ class CharacterCreationService:
             session["history"].append({"role": "user", "content": user_message})
             session["message_count"] += 1
 
-            if session["message_count"] >= 5:
+            if session["message_count"] >= 6:
                 # 5번 대화 완료 후 이름 요청
                 session["stage"] = "asking_name"
                 await websocket.send_text("알겠습니다. 앞으로의 모험을 위해 캐릭터의 이름을 지정해주세요.")
