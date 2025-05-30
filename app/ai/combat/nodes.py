@@ -115,7 +115,7 @@ def decide_strategy(state: LangGraphBattleState) -> LangGraphBattleState:
         strategy_info = parser.parse(response)
         
         # 체력 제한 강제 적용 (체력이 50% 초과인데 도망 전략 선택한 경우 공격 전략으로 변경)
-        if strategy_info.type == "도망 우선" and current_character.hp > 50:
+        if strategy_info.type != "공격 우선" and current_character.hp > 50:
             print(f"체력이 충분함에도 도망 전략 선택됨 - 공격 우선으로 변경")
             strategy_info.type = "공격 우선"
             strategy_info.reason = "체력이 충분하여 공격 전략으로 자동 변경 (체력 50 초과)"
