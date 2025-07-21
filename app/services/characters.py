@@ -37,7 +37,8 @@ def create_character(request: CharacterCreateRequest, db: Session) -> Character:
         character_name=request.character_name,
         job=request.job,
         gender=request.gender,
-        traits=request.traits
+        traits=request.traits,
+        position={"x": 0.0, "y": 0.0, "z": 0.0}
     )
     
     db.add(character)
@@ -53,6 +54,7 @@ def create_character(request: CharacterCreateRequest, db: Session) -> Character:
     stats = CharacterStats(
         character_id=character.character_id,
         **base_stats[request.job.value]
+        #여기를 request.job.value -> request.job으로 바꿈
     )
     
     db.add(stats)

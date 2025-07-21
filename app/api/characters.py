@@ -23,6 +23,10 @@ def character_creation_api(data: CharacterCreateRequest, db: Session = Depends(g
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+        
+    #except Exception as e:
+        # 🔥 여기가 핵심: 내부 오류를 확인할 수 있게 함
+        #raise HTTPException(status_code=500, detail=f"Internal Server Error: {e}")
 
 @ws_router.websocket("/create/{user_id}")
 async def character_creation_websocket(
